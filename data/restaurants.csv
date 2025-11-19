@@ -2,3 +2,4 @@ restaurant_id,name,location,contact_email,contact_phone
 restaurant_id,name,location,contact_email,contact_phone
 1,The Grand Restaurant,"123 Main Street, Updated Location",contact@grandrestaurant.com,555-0123
 2,Cozy Corner Cafe,456 Oak Avenue,info@cozycorner.com,555-0456
+3,The Grand Restaurant,"123 Main Street, Springfield",contact@grandrestaurant.com,555-0123
