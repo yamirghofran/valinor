@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.valinor.ui.controller.DashboardController"
+            styleClass="dashboard-container" prefWidth="1200" prefHeight="800">
+
+    <!-- Sidebar -->
+    <left>
+        <VBox styleClass="sidebar" prefWidth="240" spacing="8">
+            <padding>
+                <Insets top="24" right="0" bottom="24" left="0"/>
+            </padding>
+
+            <!-- App Title -->
+            <VBox spacing="4" styleClass="sidebar-header">
+                <padding>
+                    <Insets left="20" right="20"/>
+                </padding>
+                <Label text="VALINOR" styleClass="sidebar-title">
+                    <font>
+                        <Font name="System Bold" size="16"/>
+                    </font>
+                </Label>
+            </VBox>
+
+            <!-- Spacer -->
+            <Region minHeight="32"/>
+
+            <!-- Navigation Menu -->
+            <VBox spacing="4">
+                <Button fx:id="homeButton" text="Dashboard" styleClass="menu-button" maxWidth="Infinity"
+                        onAction="#showHome"/>
+                <Button fx:id="layoutButton" text="Restaurant Layout" styleClass="menu-button" maxWidth="Infinity"
+                        onAction="#showRestaurantLayout"/>
+                <Button fx:id="reservationsButton" text="Reservations" styleClass="menu-button" maxWidth="Infinity"
+                        onAction="#showReservations"/>
+                <Button fx:id="customersButton" text="Customers" styleClass="menu-button" maxWidth="Infinity"
+                        onAction="#showCustomers"/>
+                <Button fx:id="usersButton" text="User Management" styleClass="menu-button" maxWidth="Infinity"
+                        onAction="#showUsers"/>
+            </VBox>
+
+            <!-- Spacer to push user info to bottom -->
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <!-- Separator -->
+            <Separator>
+                <padding>
+                    <Insets top="16" bottom="16"/>
+                </padding>
+            </Separator>
+
+            <!-- User Info -->
+            <VBox spacing="8">
+                <padding>
+                    <Insets left="20" right="20"/>
+                </padding>
+                <Label fx:id="usernameLabel" text="Username" styleClass="user-info">
+                    <font>
+                        <Font name="System Bold" size="13"/>
+                    </font>
+                </Label>
+                <Label fx:id="roleLabel" text="Role" styleClass="user-role">
+                    <font>
+                        <Font size="11"/>
+                    </font>
+                </Label>
+                <Button text="Logout" styleClass="secondary-button" maxWidth="Infinity"
+                        onAction="#handleLogout">
+                    <font>
+                        <Font size="12"/>
+                    </font>
+                </Button>
+            </VBox>
+        </VBox>
+    </left>
+
+    <!-- Content Area -->
+    <center>
+        <StackPane fx:id="contentArea" styleClass="content-area"/>
+    </center>
+
+</BorderPane>

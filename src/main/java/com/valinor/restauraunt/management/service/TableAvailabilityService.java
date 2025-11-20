@@ -3,6 +3,7 @@ package com.valinor.restauraunt.management.service;
 import com.valinor.data.entity.Section;
 import com.valinor.data.entity.Table;
 import com.valinor.data.exception.RepositoryException;
+import com.valinor.data.repository.ReservationRepository;
 import com.valinor.data.repository.SectionRepository;
 import com.valinor.data.repository.TableRepository;
 import org.slf4j.Logger;
@@ -16,31 +17,26 @@ import java.util.stream.Collectors;
 
 /**
  * Service for checking table availability.
- * This service prepares the integration point for future reservation functionality.
+ * Integrates with reservation module to prevent double-booking.
  * 
- * Integration Contract:
- * - When reservation module is implemented, this service will need to check:
- *   1. If table is active (table.isActive())
- *   2. If table has sufficient capacity
- *   3. If table has no conflicting reservations at the requested time
- * 
- * Current Implementation:
- * - Checks if table is active
- * - Checks capacity requirements
- * - Placeholder for future reservation conflict checking
+ * Checks performed:
+ * 1. If table is active (table.isActive())
+ * 2. If table has sufficient capacity
+ * 3. If table has no conflicting reservations at the requested time
  */
 public class TableAvailabilityService {
     
     private static final Logger logger = LoggerFactory.getLogger(TableAvailabilityService.class);
     
+    private static final int DEFAULT_DURATION_MINUTES = 120; // 2 hours
+    
     private final TableRepository tableRepository;
     private final SectionRepository sectionRepository;
-    
-    // TODO: Inject ReservationRepository when implemented
-    // private final ReservationRepository reservationRepository;
+    private final ReservationRepository reservationRepository;
     
     /**
-     * Constructs a new TableAvailabilityService.
+     * Constructs a new TableAvailabilityService without reservation checking.
+     * Used for basic availability checks.
      * 
      * @param tableRepository the table repository
      * @param sectionRepository the section repository
@@ -49,16 +45,29 @@ public class TableAvailabilityService {
                                      SectionRepository sectionRepository) {
         this.tableRepository = tableRepository;
         this.sectionRepository = sectionRepository;
+        this.reservationRepository = null;
+    }
+    
+    /**
+     * Constructs a new TableAvailabilityService with full reservation integration.
+     * 
+     * @param tableRepository the table repository
+     * @param sectionRepository the section repository
+     * @param reservationRepository the reservation repository
+     */
+    public TableAvailabilityService(TableRepository tableRepository, 
+                                     SectionRepository sectionRepository,
+                                     ReservationRepository reservationRepository) {
+        this.tableRepository = tableRepository;
+        this.sectionRepository = sectionRepository;
+        this.reservationRepository = reservationRepository;
     }
     
     /**
      * Checks if a table is available (active and not reserved).
      * 
-     * Integration Note: When reservation module is implemented, this method should also check
-     * if the table has any reservations at the requested time.
-     * 
      * @param tableId the table ID to check
-     * @param requestedDateTime the date and time for the reservation (for future use)
+     * @param requestedDateTime the date and time for the reservation
      * @return true if the table is available
      * @throws RepositoryException if check fails
      */
@@ -80,14 +89,15 @@ public class TableAvailabilityService {
             return false;
         }
         
-        // TODO: Check 2: Table must not have conflicting reservations
-        // When ReservationRepository is implemented, add:
-        // boolean hasConflictingReservation = reservationRepository
-        //     .hasConflictingReservation(tableId, requestedDateTime, duration);
-        // if (hasConflictingReservation) {
-        //     logger.debug("Table {} has conflicting reservation at {}", tableId, requestedDateTime);
-        //     return false;
-        // }
+        // Check 2: Table must not have conflicting reservations
+        if (reservationRepository != null) {
+            boolean hasConflictingReservation = reservationRepository
+                .hasConflictingReservation(tableId, requestedDateTime, DEFAULT_DURATION_MINUTES);
+            if (hasConflictingReservation) {
+                logger.debug("Table {} has conflicting reservation at {}", tableId, requestedDateTime);
+                return false;
+            }
+        }
         
         logger.debug("Table {} is available", tableId);
         return true;
@@ -98,7 +108,7 @@ public class TableAvailabilityService {
      * Returns tables that are:
      * 1. Active
      * 2. Have capacity >= party size
-     * 3. Not reserved at the requested time (future implementation)
+     * 3. Not reserved at the requested time
      * 
      * @param restaurantId the restaurant ID
      * @param requestedDateTime the requested date and time
@@ -125,15 +135,18 @@ public class TableAvailabilityService {
                     .filter(table -> table.getCapacity() != null && table.getCapacity() >= partySize)
                     .collect(Collectors.toList());
             
-            // TODO: Filter by reservation conflicts when ReservationRepository is implemented
-            // for (Table table : suitableTables) {
-            //     if (!hasConflictingReservation(table.getTableId(), requestedDateTime)) {
-            //         availableTables.add(table);
-            //     }
-            // }
-            
-            // For now, add all suitable tables
-            availableTables.addAll(suitableTables);
+            // Filter by reservation conflicts
+            if (reservationRepository != null) {
+                for (Table table : suitableTables) {
+                    if (!reservationRepository.hasConflictingReservation(
+                            table.getTableId(), requestedDateTime, DEFAULT_DURATION_MINUTES)) {
+                        availableTables.add(table);
+                    }
+                }
+            } else {
+                // No reservation checking available
+                availableTables.addAll(suitableTables);
+            }
         }
         
         logger.info("Found {} available tables", availableTables.size());
@@ -161,7 +174,20 @@ public class TableAvailabilityService {
                 .filter(table -> table.getCapacity() != null && table.getCapacity() >= partySize)
                 .collect(Collectors.toList());
         
-        // TODO: Filter by reservation conflicts
+        // Filter by reservation conflicts
+        if (reservationRepository != null) {
+            return suitableTables.stream()
+                    .filter(table -> {
+                        try {
+                            return !reservationRepository.hasConflictingReservation(
+                                    table.getTableId(), requestedDateTime, DEFAULT_DURATION_MINUTES);
+                        } catch (RepositoryException e) {
+                            logger.warn("Error checking conflicts for table {}", table.getTableId(), e);
+                            return false;
+                        }
+                    })
+                    .collect(Collectors.toList());
+        }
         
         return suitableTables;
     }
@@ -206,11 +232,14 @@ public class TableAvailabilityService {
             return false;
         }
         
-        // TODO: Check for reservation conflicts
-        // if (hasConflictingReservation(tableId, requestedDateTime)) {
-        //     logger.warn("Table {} has conflicting reservation", tableId);
-        //     return false;
-        // }
+        // Check for reservation conflicts
+        if (reservationRepository != null) {
+            if (reservationRepository.hasConflictingReservation(
+                    tableId, requestedDateTime, DEFAULT_DURATION_MINUTES)) {
+                logger.warn("Table {} has conflicting reservation", tableId);
+                return false;
+            }
+        }
         
         logger.debug("Table assignment valid");
         return true;
