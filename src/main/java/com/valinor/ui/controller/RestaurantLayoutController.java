@@ -118,13 +118,22 @@ public class RestaurantLayoutController {
 
         // Add action buttons
         sectionActionsColumn.setCellFactory(param -> new TableCell<>() {
-            private final Button editButton = new Button("Edit");
-            private final Button deleteButton = new Button("Delete");
-            private final HBox buttons = new HBox(8, editButton, deleteButton);
+            private final Button editButton = new Button("✏ Edit");
+            private final Button deleteButton = new Button("🗑 Delete");
+            private final HBox buttons = new HBox(5, editButton, deleteButton);
 
             {
-                editButton.getStyleClass().add("secondary-button");
-                deleteButton.getStyleClass().add("danger-button");
+                buttons.setAlignment(javafx.geometry.Pos.CENTER);
+                editButton.getStyleClass().add("button-edit");
+                deleteButton.getStyleClass().add("button-delete");
+
+                // Set minimum widths to prevent text cutoff
+                editButton.setMinWidth(70);
+                deleteButton.setMinWidth(80);
+
+                // Add tooltips for clarity
+                editButton.setTooltip(new Tooltip("Edit section"));
+                deleteButton.setTooltip(new Tooltip("Delete section"));
 
                 editButton.setOnAction(event -> {
                     Section section = getTableView().getItems().get(getIndex());
@@ -169,15 +178,26 @@ public class RestaurantLayoutController {
 
         // Add action buttons
         tableActionsColumn.setCellFactory(param -> new TableCell<>() {
-            private final Button editButton = new Button("Edit");
-            private final Button toggleButton = new Button("Toggle");
-            private final Button deleteButton = new Button("Delete");
-            private final HBox buttons = new HBox(8, editButton, toggleButton, deleteButton);
+            private final Button editButton = new Button("✏ Edit");
+            private final Button toggleButton = new Button("⚡ Toggle");
+            private final Button deleteButton = new Button("🗑 Delete");
+            private final HBox buttons = new HBox(5, editButton, toggleButton, deleteButton);
 
             {
-                editButton.getStyleClass().add("secondary-button");
-                toggleButton.getStyleClass().add("secondary-button");
-                deleteButton.getStyleClass().add("danger-button");
+                buttons.setAlignment(javafx.geometry.Pos.CENTER);
+                editButton.getStyleClass().add("button-edit");
+                toggleButton.getStyleClass().add("button-action");
+                deleteButton.getStyleClass().add("button-delete");
+
+                // Set minimum widths to prevent text cutoff
+                editButton.setMinWidth(70);
+                toggleButton.setMinWidth(85);
+                deleteButton.setMinWidth(80);
+
+                // Add tooltips for clarity
+                editButton.setTooltip(new Tooltip("Edit table details"));
+                toggleButton.setTooltip(new Tooltip("Toggle active/inactive status"));
+                deleteButton.setTooltip(new Tooltip("Delete table"));
 
                 editButton.setOnAction(event -> {
                     Table table = getTableView().getItems().get(getIndex());
@@ -365,17 +385,131 @@ public class RestaurantLayoutController {
             return;
         }
 
-        // Create simple dialog for table creation
-        Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Add Table");
-        dialog.setHeaderText("Create New Table");
+        Dialog<Table> dialog = createTableDialog(null);
+        Optional<Table> result = dialog.showAndWait();
 
-        // For now, just show a message that this feature will be implemented
-        showAlert("Add Table", "Table creation dialog will be implemented in the next iteration.");
+        if (result.isPresent()) {
+            try {
+                Table newTable = result.get();
+                newTable.setIsActive(true);
+                tableRepository.save(newTable);
+                loadTables();
+                logger.info("Table created: {}", newTable.getTableNumber());
+            } catch (Exception e) {
+                logger.error("Failed to create table", e);
+                showAlert("Error", "Failed to create table: " + e.getMessage());
+            }
+        }
     }
 
     private void handleEditTable(Table table) {
-        showAlert("Edit Table", "Table editing dialog will be implemented in the next iteration.");
+        Dialog<Table> dialog = createTableDialog(table);
+        Optional<Table> result = dialog.showAndWait();
+
+        if (result.isPresent()) {
+            try {
+                Table updatedTable = result.get();
+                tableRepository.update(updatedTable);
+                loadTables();
+                logger.info("Table updated: {}", updatedTable.getTableNumber());
+            } catch (Exception e) {
+                logger.error("Failed to update table", e);
+                showAlert("Error", "Failed to update table: " + e.getMessage());
+            }
+        }
+    }
+
+    private Dialog<Table> createTableDialog(Table existingTable) {
+        Dialog<Table> dialog = new Dialog<>();
+        dialog.setTitle(existingTable == null ? "Add Table" : "Edit Table");
+        dialog.setHeaderText(existingTable == null ? "Create New Table" : "Edit Table");
+
+        // Add buttons
+        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
+
+        // Create form fields
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+
+        TextField tableNumberField = new TextField();
+        tableNumberField.setPromptText("Table Number");
+        if (existingTable != null) {
+            tableNumberField.setText(existingTable.getTableNumber());
+        }
+
+        ComboBox<Section> sectionCombo = new ComboBox<>();
+        sectionCombo.setItems(sections);
+        sectionCombo.setConverter(new javafx.util.StringConverter<Section>() {
+            @Override
+            public String toString(Section section) {
+                return section == null ? "" : section.getName();
+            }
+
+            @Override
+            public Section fromString(String string) {
+                return null;
+            }
+        });
+        if (existingTable != null) {
+            // Find and select the current section
+            sections.stream()
+                .filter(s -> s.getSectionId().equals(existingTable.getSectionId()))
+                .findFirst()
+                .ifPresent(sectionCombo::setValue);
+        } else {
+            sectionCombo.setValue(sections.get(0));
+        }
+
+        TextField capacityField = new TextField();
+        capacityField.setPromptText("Capacity");
+        if (existingTable != null) {
+            capacityField.setText(String.valueOf(existingTable.getCapacity()));
+        }
+
+        grid.add(new Label("Table Number:"), 0, 0);
+        grid.add(tableNumberField, 1, 0);
+        grid.add(new Label("Section:"), 0, 1);
+        grid.add(sectionCombo, 1, 1);
+        grid.add(new Label("Capacity:"), 0, 2);
+        grid.add(capacityField, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Enable/disable save button based on validation
+        javafx.scene.Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
+        saveButton.setDisable(true);
+
+        // Validation
+        tableNumberField.textProperty().addListener((observable, oldValue, newValue) -> {
+            saveButton.setDisable(newValue.trim().isEmpty() || capacityField.getText().trim().isEmpty());
+        });
+
+        capacityField.textProperty().addListener((observable, oldValue, newValue) -> {
+            saveButton.setDisable(tableNumberField.getText().trim().isEmpty() || newValue.trim().isEmpty());
+        });
+
+        // Convert result to Table when save is clicked
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == saveButtonType) {
+                try {
+                    Table table = existingTable != null ? existingTable : new Table();
+                    table.setTableNumber(tableNumberField.getText().trim());
+                    table.setSectionId(sectionCombo.getValue().getSectionId());
+                    table.setCapacity(Integer.parseInt(capacityField.getText().trim()));
+
+                    return table;
+                } catch (NumberFormatException e) {
+                    showAlert("Invalid Input", "Capacity must be a valid number.");
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        return dialog;
     }
 
     private void handleToggleTable(Table table) {

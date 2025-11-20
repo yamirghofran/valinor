@@ -63,4 +63,4 @@ table_id,section_id,table_number,capacity,is_active
 61,8,M9,6,true
 62,8,M10,6,true
 63,9,PR1,12,true
-64,10,TEST1,2,true
+64,10,1,10,false

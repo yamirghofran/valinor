@@ -112,17 +112,62 @@ public class HomeController {
     private void handleNewReservation() {
         // Navigate to reservations view
         logger.info("Navigate to new reservation");
+        navigateTo("reservations");
     }
 
     @FXML
     private void handleAddCustomer() {
         // Navigate to customers view
         logger.info("Navigate to add customer");
+        navigateTo("customers");
     }
 
     @FXML
     private void handleManageTables() {
         // Navigate to restaurant layout view
         logger.info("Navigate to manage tables");
+        navigateTo("layout");
+    }
+
+    private void navigateTo(String view) {
+        try {
+            // Get the DashboardController through the scene
+            javafx.scene.Node node = totalTablesLabel; // Any FXML-injected node will work
+            while (node.getParent() != null) {
+                node = node.getParent();
+                if (node instanceof javafx.scene.layout.StackPane) {
+                    // This is likely the contentArea in dashboard
+                    javafx.scene.Parent root = node.getParent();
+                    if (root != null) {
+                        // Trigger navigation by simulating button clicks or finding buttons
+                        findAndClickButton(root, view);
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Failed to navigate to view: " + view, e);
+        }
+    }
+
+    private void findAndClickButton(javafx.scene.Parent parent, String view) {
+        // Find the navigation buttons in the dashboard
+        for (javafx.scene.Node node : parent.getChildrenUnmodifiable()) {
+            if (node instanceof javafx.scene.control.Button) {
+                javafx.scene.control.Button button = (javafx.scene.control.Button) node;
+                String buttonId = button.getId();
+                if (buttonId != null) {
+                    if ((view.equals("reservations") && buttonId.equals("reservationsButton")) ||
+                        (view.equals("customers") && buttonId.equals("customersButton")) ||
+                        (view.equals("layout") && buttonId.equals("layoutButton"))) {
+                        button.fire();
+                        return;
+                    }
+                }
+            }
+            if (node instanceof javafx.scene.Parent) {
+                findAndClickButton((javafx.scene.Parent) node, view);
+            }
+        }
     }
 }
