@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.valinor.ui.controller.CustomersController"
+      spacing="24">
+
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="16">
+        <VBox spacing="8" HBox.hgrow="ALWAYS">
+            <Label text="Customers" styleClass="page-title"/>
+            <Label text="Manage customer database" styleClass="page-subtitle"/>
+        </VBox>
+        <TextField fx:id="searchField" promptText="Search customers..." prefWidth="250"/>
+        <Button text="Add Customer" styleClass="primary-button" onAction="#handleAddCustomer"/>
+    </HBox>
+
+    <!-- Customers Table -->
+    <TableView fx:id="customersTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" text="ID" prefWidth="60"/>
+            <TableColumn fx:id="nameColumn" text="Name" prefWidth="180"/>
+            <TableColumn fx:id="emailColumn" text="Email" prefWidth="200"/>
+            <TableColumn fx:id="phoneColumn" text="Phone" prefWidth="150"/>
+            <TableColumn fx:id="reservationCountColumn" text="Reservations" prefWidth="100"/>
+            <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="200"/>
+        </columns>
+    </TableView>
+
+</VBox>

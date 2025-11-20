@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.valinor.ui.controller.ReservationsController"
+      spacing="24">
+
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="16">
+        <VBox spacing="8" HBox.hgrow="ALWAYS">
+            <Label text="Reservations" styleClass="page-title"/>
+            <Label text="Manage customer reservations" styleClass="page-subtitle"/>
+        </VBox>
+        <Button text="New Reservation" styleClass="primary-button" onAction="#handleNewReservation"/>
+    </HBox>
+
+    <!-- Filters -->
+    <HBox spacing="16" alignment="CENTER_LEFT">
+        <Label text="Filter:"/>
+        <ComboBox fx:id="statusFilterCombo" promptText="Status" prefWidth="150"/>
+        <DatePicker fx:id="datePicker" promptText="Select date" prefWidth="150"/>
+        <Button text="Clear Filters" styleClass="secondary-button" onAction="#handleClearFilters"/>
+    </HBox>
+
+    <!-- Reservations Table -->
+    <TableView fx:id="reservationsTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" text="ID" prefWidth="60"/>
+            <TableColumn fx:id="customerColumn" text="Customer" prefWidth="150"/>
+            <TableColumn fx:id="dateColumn" text="Date" prefWidth="100"/>
+            <TableColumn fx:id="timeColumn" text="Time" prefWidth="80"/>
+            <TableColumn fx:id="tableSectionColumn" text="Table/Section" prefWidth="120"/>
+            <TableColumn fx:id="partySizeColumn" text="Party Size" prefWidth="80"/>
+            <TableColumn fx:id="statusColumn" text="Status" prefWidth="100"/>
+            <TableColumn fx:id="notesColumn" text="Notes" prefWidth="180"/>
+            <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="220"/>
+        </columns>
+    </TableView>
+
+</VBox>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.valinor.ui.controller.LoginController"
+      alignment="CENTER" spacing="20" styleClass="login-container">
+
+    <padding>
+        <Insets top="40" right="40" bottom="40" left="40"/>
+    </padding>
+
+    <!-- Logo/Title -->
+    <VBox alignment="CENTER" spacing="10">
+        <Label text="Valinor" styleClass="app-title">
+            <font>
+                <Font name="System Bold" size="32"/>
+            </font>
+        </Label>
+        <Label text="Restaurant Management System" styleClass="app-subtitle">
+            <font>
+                <Font size="14"/>
+            </font>
+        </Label>
+    </VBox>
+
+    <!-- Spacer -->
+    <Region VBox.vgrow="ALWAYS" minHeight="20" maxHeight="20"/>
+
+    <!-- Login Form -->
+    <VBox spacing="15" styleClass="login-form">
+        <Label text="Sign In" styleClass="form-title">
+            <font>
+                <Font name="System Bold" size="18"/>
+            </font>
+        </Label>
+
+        <!-- Username Field -->
+        <VBox spacing="5">
+            <Label text="Username"/>
+            <TextField fx:id="usernameField" promptText="Enter username" styleClass="input-field"/>
+        </VBox>
+
+        <!-- Password Field -->
+        <VBox spacing="5">
+            <Label text="Password"/>
+            <PasswordField fx:id="passwordField" promptText="Enter password" styleClass="input-field"/>
+        </VBox>
+
+        <!-- Error Label -->
+        <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" visible="false" managed="false"/>
+
+        <!-- Login Button -->
+        <Button fx:id="loginButton" text="Login" onAction="#handleLogin"
+                styleClass="primary-button" maxWidth="Infinity">
+            <font>
+                <Font name="System Bold" size="14"/>
+            </font>
+        </Button>
+    </VBox>
+
+    <!-- Spacer -->
+    <Region VBox.vgrow="ALWAYS"/>
+
+    <!-- Footer -->
+    <Label text="© 2025 Valinor Restaurant Management" styleClass="footer-text">
+        <font>
+            <Font size="10"/>
+        </font>
+    </Label>
+
+</VBox>

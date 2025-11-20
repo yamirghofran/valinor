@@ -2,4 +2,4 @@ session_id,user_id,session_token,created_at,expires_at,ip_address,is_active
 session_id,user_id,session_token,created_at,expires_at,ip_address,is_active
 1,1,63b41866-d8a4-4225-a517-5c431e5d8398,2025-11-20T10:19:11.499476,2025-11-21T10:19:11.499303,192.168.1.100,false
 2,1,4fbec74d-4168-4bc3-9a52-538229d0ed44,2025-11-20T10:19:13.733733,2025-11-21T10:19:14.01473,,false
-3,1,bfdb1e49-b567-403a-a733-a415db2dc688,2025-11-20T10:19:14.01216,2025-11-21T10:19:14.012154,,true
+3,1,bfdb1e49-b567-403a-a733-a415db2dc688,2025-11-20T10:19:14.01216,2025-11-21T10:19:14.012154,,false
