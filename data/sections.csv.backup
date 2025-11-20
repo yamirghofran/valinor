@@ -6,4 +6,7 @@ section_id,restaurant_id,name,num_tables,notes
 4,4,Terrace,,Outdoor terrace with stunning ocean views - reservation recommended
 5,4,Main Dining,,Indoor dining area with piano
 6,4,Private Room,,Private dining room for events
-7,4,Test Section,,
+7,5,Terrace,,Outdoor terrace with stunning ocean views - reservation recommended
+8,5,Main Dining,,Indoor dining area with piano
+9,5,Private Room,,Private dining room for events
+10,5,Test Section,,
