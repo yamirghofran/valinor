@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.valinor.ui.controller.HomeController"
+      spacing="32">
+
+    <!-- Header -->
+    <VBox spacing="8">
+        <Label text="Dashboard" styleClass="page-title"/>
+        <Label text="Overview of your restaurant management system" styleClass="page-subtitle"/>
+    </VBox>
+
+    <!-- Stats Grid -->
+    <GridPane hgap="24" vgap="24">
+        <columnConstraints>
+            <ColumnConstraints percentWidth="25"/>
+            <ColumnConstraints percentWidth="25"/>
+            <ColumnConstraints percentWidth="25"/>
+            <ColumnConstraints percentWidth="25"/>
+        </columnConstraints>
+
+        <!-- Total Tables -->
+        <VBox styleClass="stat-card" spacing="16" GridPane.columnIndex="0">
+            <Label text="TABLES" styleClass="stat-label"/>
+            <Label fx:id="totalTablesLabel" text="0" styleClass="stat-value"/>
+        </VBox>
+
+        <!-- Active Reservations -->
+        <VBox styleClass="stat-card" spacing="16" GridPane.columnIndex="1">
+            <Label text="RESERVATIONS" styleClass="stat-label"/>
+            <Label fx:id="activeReservationsLabel" text="0" styleClass="stat-value"/>
+        </VBox>
+
+        <!-- Total Customers -->
+        <VBox styleClass="stat-card" spacing="16" GridPane.columnIndex="2">
+            <Label text="CUSTOMERS" styleClass="stat-label"/>
+            <Label fx:id="totalCustomersLabel" text="0" styleClass="stat-value"/>
+        </VBox>
+
+        <!-- Total Users -->
+        <VBox styleClass="stat-card" spacing="16" GridPane.columnIndex="3">
+            <Label text="USERS" styleClass="stat-label"/>
+            <Label fx:id="totalUsersLabel" text="0" styleClass="stat-value"/>
+        </VBox>
+    </GridPane>
+
+    <!-- Quick Actions -->
+    <VBox spacing="16">
+        <Label text="Quick Actions" styleClass="page-subtitle">
+            <font>
+                <Font name="System Bold" size="16"/>
+            </font>
+        </Label>
+        <HBox spacing="16">
+            <Button text="New Reservation" styleClass="primary-button" onAction="#handleNewReservation"/>
+            <Button text="Add Customer" styleClass="secondary-button" onAction="#handleAddCustomer"/>
+            <Button text="Manage Tables" styleClass="secondary-button" onAction="#handleManageTables"/>
+        </HBox>
+    </VBox>
+
+    <!-- Recent Activity -->
+    <VBox spacing="16" VBox.vgrow="ALWAYS">
+        <Label text="Recent Activity" styleClass="page-subtitle">
+            <font>
+                <Font name="System Bold" size="16"/>
+            </font>
+        </Label>
+        <TableView fx:id="recentActivityTable" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="timeColumn" text="Time" prefWidth="150"/>
+                <TableColumn fx:id="activityColumn" text="Activity" prefWidth="300"/>
+                <TableColumn fx:id="userColumn" text="User" prefWidth="150"/>
+                <TableColumn fx:id="statusColumn" text="Status" prefWidth="120"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+</VBox>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.valinor.ui.controller.UsersController"
+      spacing="24">
+
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="16">
+        <VBox spacing="8" HBox.hgrow="ALWAYS">
+            <Label text="User Management" styleClass="page-title"/>
+            <Label text="Manage system users and permissions" styleClass="page-subtitle"/>
+        </VBox>
+        <Button text="Add User" styleClass="primary-button" onAction="#handleAddUser"/>
+    </HBox>
+
+    <!-- Filters -->
+    <HBox spacing="16" alignment="CENTER_LEFT">
+        <Label text="Filter:"/>
+        <ComboBox fx:id="roleFilterCombo" promptText="Role" prefWidth="180"/>
+        <ComboBox fx:id="statusFilterCombo" promptText="Status" prefWidth="150"/>
+        <Button text="Clear Filters" styleClass="secondary-button" onAction="#handleClearFilters"/>
+    </HBox>
+
+    <!-- Users Table -->
+    <TableView fx:id="usersTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" text="ID" prefWidth="60"/>
+            <TableColumn fx:id="usernameColumn" text="Username" prefWidth="150"/>
+            <TableColumn fx:id="emailColumn" text="Email" prefWidth="200"/>
+            <TableColumn fx:id="roleColumn" text="Role" prefWidth="150"/>
+            <TableColumn fx:id="statusColumn" text="Status" prefWidth="100"/>
+            <TableColumn fx:id="createdColumn" text="Created" prefWidth="120"/>
+            <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="220"/>
+        </columns>
+    </TableView>
+
+</VBox>

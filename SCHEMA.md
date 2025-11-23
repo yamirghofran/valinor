@@ -72,6 +72,7 @@ Customer profile information.
 
 **Fields**
 - `customer_id` (PK)
+- `restaurant_id` (FK)
 - `first_name`
 - `last_name`
 - `email`
@@ -80,6 +81,7 @@ Customer profile information.
 - `notes` (optional)
 
 **Relationships**
+- Belongs to: Restaurant
 - One-to-many: Reservations
 
 ---

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.valinor.ui.controller.RestaurantLayoutController"
+      spacing="24">
+
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="16">
+        <VBox spacing="8" HBox.hgrow="ALWAYS">
+            <Label text="Restaurant Layout" styleClass="page-title"/>
+            <Label text="Manage sections and tables" styleClass="page-subtitle"/>
+        </VBox>
+        <Button text="Add Section" styleClass="primary-button" onAction="#handleAddSection"/>
+    </HBox>
+
+    <!-- Sections List -->
+    <VBox spacing="16">
+        <HBox alignment="CENTER_LEFT">
+            <Label text="Sections" styleClass="page-subtitle">
+                <font>
+                    <Font name="System Bold" size="16"/>
+                </font>
+            </Label>
+        </HBox>
+
+        <TableView fx:id="sectionsTable" prefHeight="250">
+            <columns>
+                <TableColumn fx:id="sectionNameColumn" text="Section Name" prefWidth="200"/>
+                <TableColumn fx:id="sectionDescriptionColumn" text="Description" prefWidth="300"/>
+                <TableColumn fx:id="sectionTableCountColumn" text="Tables" prefWidth="100"/>
+                <TableColumn fx:id="sectionActionsColumn" text="Actions" prefWidth="200"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <!-- Tables List -->
+    <VBox spacing="16" VBox.vgrow="ALWAYS">
+        <HBox alignment="CENTER_LEFT" spacing="16">
+            <Label text="Tables" styleClass="page-subtitle" HBox.hgrow="ALWAYS">
+                <font>
+                    <Font name="System Bold" size="16"/>
+                </font>
+            </Label>
+            <ComboBox fx:id="sectionFilterCombo" promptText="Filter by section" prefWidth="200"/>
+            <Button text="Add Table" styleClass="primary-button" onAction="#handleAddTable"/>
+        </HBox>
+
+        <TableView fx:id="tablesTable" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="tableNumberColumn" text="Table #" prefWidth="100"/>
+                <TableColumn fx:id="tableSectionColumn" text="Section" prefWidth="150"/>
+                <TableColumn fx:id="tableCapacityColumn" text="Capacity" prefWidth="100"/>
+                <TableColumn fx:id="tableStatusColumn" text="Status" prefWidth="120"/>
+                <TableColumn fx:id="tableActionsColumn" text="Actions" prefWidth="250"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+</VBox>

@@ -1,0 +1,6 @@
+customer_id,first_name,last_name,email,phone,allergies,notes
+customer_id,first_name,last_name,email,phone,allergies,notes
+1,John,Doe,john.doe@example.com,555-0100,Peanuts,VIP customer
+2,Jane,Smith,jane.smith@example.com,555-0101,,Prefers window seats
+3,Bob,Johnson,bob.j@example.com,555-0102,Gluten,
+4,Alice,Williams,alice.williams@example.com,555-9999,Shellfish,Updated: Prefers quiet tables

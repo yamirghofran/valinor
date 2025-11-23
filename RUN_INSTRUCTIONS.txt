@@ -1,0 +1,70 @@
+================================================================================
+  VALINOR RESTAURANT RESERVATION SYSTEM - HOW TO RUN
+================================================================================
+
+EASY WAY - Use the Demo Script:
+--------------------------------
+
+1. Open Terminal and navigate to the project folder:
+   cd /Users/leaaboujaoude/Desktop/IE3/semester_1/java/valinor
+
+2. Run any demo:
+   ./run-demo.sh customer      # Customer management
+   ./run-demo.sh reservation   # Reservation booking
+   ./run-demo.sh user          # User authentication
+   ./run-demo.sh layout        # Restaurant layout
+   ./run-demo.sh table         # Table availability
+
+3. To see all available demos:
+   ./run-demo.sh
+
+
+ALTERNATIVE - Use Maven Directly:
+----------------------------------
+
+mvn exec:java -Dexec.mainClass="com.valinor.data.demo.CustomerServiceDemo"
+mvn exec:java -Dexec.mainClass="com.valinor.data.demo.ReservationServiceDemo"
+mvn exec:java -Dexec.mainClass="com.valinor.data.demo.UserManagementDemo"
+
+
+WHAT EACH DEMO SHOWS:
+----------------------
+
+customer    - Create, update, delete customers. Search by email/name/phone.
+reservation - Book tables, auto-assign optimal tables, prevent double-booking.
+user        - Register users, login, password hashing, session management.
+layout      - View restaurant sections and tables, manage capacity.
+table       - Check table availability by time and party size.
+
+
+TROUBLESHOOTING:
+----------------
+
+If you get "Permission denied":
+  chmod +x run-demo.sh
+
+If you get "command not found":
+  Use the full path: ./run-demo.sh customer
+
+If you're not in the right directory:
+  cd /Users/leaaboujaoude/Desktop/IE3/semester_1/java/valinor
+
+
+DATA FILES:
+-----------
+All data is stored in: data/
+  - customers.csv       (customer profiles)
+  - reservations.csv    (bookings)
+  - users.csv           (user accounts)
+  - restaurants.csv     (restaurant info)
+  - sections.csv        (dining sections)
+  - tables.csv          (table inventory)
+
+Backups are created automatically with .backup extension.
+
+
+MORE INFO:
+----------
+See QUICKSTART.md for detailed documentation and code examples.
+
+================================================================================

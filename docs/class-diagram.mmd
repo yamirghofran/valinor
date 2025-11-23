@@ -1,0 +1,126 @@
+classDiagram
+
+class Customer {
+    +Long customerId
+    +String firstName
+    +String lastName
+    +String email
+    +String phone
+    +String allergies
+    +String notes
+}
+
+class Reservation {
+    +Long reservationId
+    +Long customerId
+    +Long restaurantId
+    +Long tableId
+    +Integer partySize
+    +LocalDateTime reservationDatetime
+    +ReservationStatus status
+    +String specialRequests
+}
+
+class Restaurant {
+    +Long restaurantId
+    +String name
+    +String location
+    +String contactEmail
+    +String contactPhone
+}
+
+class Section {
+    +Long sectionId
+    +Long restaurantId
+    +String name
+    +Integer numTables
+}
+
+class Table {
+    +Long tableId
+    +Long sectionId
+    +String tableNumber
+    +Integer capacity
+    +Boolean isActive
+}
+
+class User {
+    +Long userId
+    +String username
+    +UserRole role
+    +Boolean isActive
+    +"Set<Permission>" permissions
+}
+
+class UserSession {
+    +Long sessionId
+    +Long userId
+    +String sessionToken
+    +LocalDateTime expiresAt
+}
+
+class ReservationService {
+    +createReservation()
+    +updateReservation()
+    +cancelReservation()
+    +findReservations()
+}
+
+class CustomerService {
+    +createCustomer()
+    +updateCustomer()
+    +getAllCustomers()
+    +deleteCustomer()
+}
+
+class RestaurantLayoutService {
+    +createSection()
+    +updateSection()
+    +createTable()
+    +updateTable()
+    +getLayout()
+}
+
+class UserService {
+    +createUser()
+    +updateUser()
+    +listUsers()
+    +deactivateUser()
+}
+
+class AuthenticationService {
+    +login()
+    +logout()
+    +validateSession()
+}
+
+class CustomerRepository
+class ReservationRepository
+class RestaurantRepository
+class SectionRepository
+class TableRepository
+class UserRepository
+class UserSessionRepository
+
+Customer "1" --> "*" Reservation : books
+Reservation "*" --> "1" Table : assigned
+Table "*" --> "1" Section : belongs
+Section "*" --> "1" Restaurant : part of
+Reservation --> Restaurant : context
+User "1" --> "*" UserSession : maintains
+
+ReservationService --> ReservationRepository
+ReservationService --> CustomerRepository
+ReservationService --> RestaurantRepository
+ReservationService --> TableRepository
+
+CustomerService --> CustomerRepository
+RestaurantLayoutService --> RestaurantRepository
+RestaurantLayoutService --> SectionRepository
+RestaurantLayoutService --> TableRepository
+
+UserService --> UserRepository
+AuthenticationService --> UserRepository
+AuthenticationService --> UserSessionRepository
+
+UserService --> AuthenticationService : uses hashing

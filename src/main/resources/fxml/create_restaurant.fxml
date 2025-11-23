@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.valinor.ui.controller.CreateRestaurantController"
+      alignment="CENTER" spacing="20" styleClass="login-container">
+
+    <padding>
+        <Insets top="30" right="40" bottom="30" left="40"/>
+    </padding>
+
+    <!-- Title -->
+    <VBox alignment="CENTER" spacing="5">
+        <Label text="Create New Restaurant" styleClass="app-title">
+            <font>
+                <Font name="System Bold" size="28"/>
+            </font>
+        </Label>
+        <Label text="Set up your restaurant and admin account" styleClass="app-subtitle">
+            <font>
+                <Font size="12"/>
+            </font>
+        </Label>
+    </VBox>
+
+    <!-- Spacer -->
+    <Region VBox.vgrow="SOMETIMES" minHeight="10" maxHeight="10"/>
+
+    <!-- Scrollable Form Content -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="form-scroll">
+        <VBox spacing="20" styleClass="login-form">
+            
+            <!-- Restaurant Information Section -->
+            <VBox spacing="10">
+                <Label text="Restaurant Information" styleClass="section-title">
+                    <font>
+                        <Font name="System Bold" size="16"/>
+                    </font>
+                </Label>
+                <Separator/>
+                
+                <VBox spacing="5">
+                    <Label text="Restaurant Name *"/>
+                    <TextField fx:id="restaurantNameField" promptText="Enter restaurant name" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Location/Address *"/>
+                    <TextField fx:id="locationField" promptText="Enter full address" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Contact Email *"/>
+                    <TextField fx:id="contactEmailField" promptText="contact@restaurant.com" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Contact Phone *"/>
+                    <TextField fx:id="contactPhoneField" promptText="(555) 123-4567" styleClass="input-field"/>
+                </VBox>
+            </VBox>
+
+            <!-- Admin Account Section -->
+            <VBox spacing="10">
+                <Label text="Administrator Account" styleClass="section-title">
+                    <font>
+                        <Font name="System Bold" size="16"/>
+                    </font>
+                </Label>
+                <Separator/>
+                
+                <VBox spacing="5">
+                    <Label text="Username *"/>
+                    <TextField fx:id="adminUsernameField" promptText="Enter username" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Password *"/>
+                    <PasswordField fx:id="adminPasswordField" promptText="Enter password" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Confirm Password *"/>
+                    <PasswordField fx:id="confirmPasswordField" promptText="Re-enter password" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Email *"/>
+                    <TextField fx:id="adminEmailField" promptText="admin@email.com" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="First Name *"/>
+                    <TextField fx:id="adminFirstNameField" promptText="Enter first name" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Last Name *"/>
+                    <TextField fx:id="adminLastNameField" promptText="Enter last name" styleClass="input-field"/>
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Phone (Optional)"/>
+                    <TextField fx:id="adminPhoneField" promptText="(555) 123-4567" styleClass="input-field"/>
+                </VBox>
+            </VBox>
+        </VBox>
+    </ScrollPane>
+
+    <!-- Error Label -->
+    <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" visible="false" managed="false"/>
+
+    <!-- Action Buttons -->
+    <HBox spacing="10" alignment="CENTER">
+        <Button fx:id="createButton" text="Create Restaurant" onAction="#handleCreateRestaurant"
+                styleClass="primary-button" prefWidth="200">
+            <font>
+                <Font name="System Bold" size="14"/>
+            </font>
+        </Button>
+        <Button text="Cancel" onAction="#handleCancel" styleClass="secondary-button" prefWidth="100">
+            <font>
+                <Font size="14"/>
+            </font>
+        </Button>
+    </HBox>
+
+    <!-- Spacer -->
+    <Region VBox.vgrow="SOMETIMES"/>
+
+</VBox>
