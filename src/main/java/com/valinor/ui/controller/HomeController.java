@@ -1,14 +1,16 @@
 package com.valinor.ui.controller;
 
-import com.valinor.domain.model.Table;
-import com.valinor.domain.model.Customer;
-import com.valinor.domain.model.Reservation;
-import com.valinor.domain.model.User;
+import com.valinor.domain.model.Section;
 import com.valinor.repository.TableRepository;
 import com.valinor.repository.CustomerRepository;
 import com.valinor.repository.ReservationRepository;
 import com.valinor.repository.UserRepository;
+import com.valinor.repository.SectionRepository;
 import com.valinor.ui.util.SessionManager;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
@@ -54,6 +56,7 @@ public class HomeController {
     private CustomerRepository customerRepository;
     private ReservationRepository reservationRepository;
     private UserRepository userRepository;
+    private SectionRepository sectionRepository;
 
     @FXML
     public void initialize() {
@@ -63,6 +66,7 @@ public class HomeController {
             customerRepository = new CustomerRepository(com.valinor.ui.util.DataPaths.CUSTOMERS_CSV);
             reservationRepository = new ReservationRepository(com.valinor.ui.util.DataPaths.RESERVATIONS_CSV);
             userRepository = new UserRepository(com.valinor.ui.util.DataPaths.USERS_CSV);
+            sectionRepository = new SectionRepository(com.valinor.ui.util.DataPaths.SECTIONS_CSV);
 
             // Load statistics
             loadStatistics();
@@ -78,9 +82,18 @@ public class HomeController {
             Long restaurantId = SessionManager.getInstance().getRestaurantId();
 
             if (restaurantId != null) {
-                // Count tables for this restaurant
+                // Get all sections for this restaurant
+                List<Section> restaurantSections = sectionRepository.findByRestaurantId(restaurantId);
+                
+                // Get section IDs for this restaurant
+                Set<Long> restaurantSectionIds = restaurantSections.stream()
+                    .map(Section::getSectionId)
+                    .collect(Collectors.toSet());
+                
+                // Count tables that belong to this restaurant's sections
                 long tableCount = tableRepository.findAll().stream()
-                        .filter(table -> table.getSectionId() != null)
+                        .filter(table -> table.getSectionId() != null && 
+                                restaurantSectionIds.contains(table.getSectionId()))
                         .count();
                 totalTablesLabel.setText(String.valueOf(tableCount));
 
@@ -90,8 +103,10 @@ public class HomeController {
                         .count();
                 activeReservationsLabel.setText(String.valueOf(reservationCount));
 
-                // Count customers
-                long customerCount = customerRepository.findAll().size();
+                // Count customers for this restaurant
+                long customerCount = customerRepository.findAll().stream()
+                        .filter(customer -> restaurantId.equals(customer.getRestaurantId()))
+                        .count();
                 totalCustomersLabel.setText(String.valueOf(customerCount));
 
                 // Count users

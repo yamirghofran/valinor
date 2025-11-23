@@ -140,8 +140,13 @@ public class CustomersController {
 
     private void loadCustomers() {
         try {
-            List<Customer> customerList = customerRepository.findAll();
-            customers.setAll(customerList);
+            Long restaurantId = SessionManager.getInstance().getRestaurantId();
+            if (restaurantId != null) {
+                List<Customer> customerList = customerRepository.findAll().stream()
+                    .filter(c -> restaurantId.equals(c.getRestaurantId()))
+                    .collect(Collectors.toList());
+                customers.setAll(customerList);
+            }
         } catch (Exception e) {
             logger.error("Failed to load customers", e);
         }
@@ -149,6 +154,11 @@ public class CustomersController {
 
     private void filterCustomers(String searchText) {
         try {
+            Long restaurantId = SessionManager.getInstance().getRestaurantId();
+            if (restaurantId == null) {
+                return;
+            }
+            
             if (searchText == null || searchText.trim().isEmpty()) {
                 loadCustomers();
                 return;
@@ -156,6 +166,7 @@ public class CustomersController {
 
             String lowerSearch = searchText.toLowerCase();
             List<Customer> filtered = customerRepository.findAll().stream()
+                    .filter(c -> restaurantId.equals(c.getRestaurantId()))
                     .filter(c -> {
                         String fullName = (c.getFirstName() + " " + c.getLastName()).toLowerCase();
                         return fullName.contains(lowerSearch) ||
@@ -177,6 +188,7 @@ public class CustomersController {
         if (result.isPresent()) {
             try {
                 Customer newCustomer = result.get();
+                newCustomer.setRestaurantId(SessionManager.getInstance().getRestaurantId());
                 customerRepository.save(newCustomer);
                 loadCustomers();
                 logger.info("Customer created: {}", newCustomer.getEmail());
