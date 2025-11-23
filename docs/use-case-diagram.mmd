@@ -1,0 +1,49 @@
+flowchart LR
+
+    Customer([Customer])
+    Staff([Front-of-House Staff])
+    Manager([Restaurant Manager])
+    Admin([System Admin])
+
+    subgraph ReservationModule[Reservation & Customer Management]
+        UC1((Browse Availability))
+        UC2((Create Reservation))
+        UC3((Modify / Cancel Reservation))
+        UC4((Manage Customer Profiles))
+    end
+
+    subgraph LayoutModule[Restaurant Layout]
+        UC5((Design Layout))
+        UC6((Validate Layout))
+        UC7((Check Table Availability))
+    end
+
+    subgraph UserModule[User & Auth]
+        UC8((Authenticate User))
+        UC9((Manage User Accounts))
+        UC10((Assign Roles & Permissions))
+    end
+
+    subgraph Reporting[Operations Dashboard]
+        UC11((View Operational Metrics))
+    end
+
+    Customer --> UC1
+    Customer --> UC2
+    Customer --> UC3
+
+    Staff --> UC2
+    Staff --> UC3
+    Staff --> UC4
+    Staff --> UC7
+
+    Manager --> UC4
+    Manager --> UC5
+    Manager --> UC6
+    Manager --> UC7
+    Manager --> UC11
+
+    Admin --> UC8
+    Admin --> UC9
+    Admin --> UC10
+    Admin --> UC11
