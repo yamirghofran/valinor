@@ -68,6 +68,17 @@ public class CustomerRepository extends AbstractCsvRepository<Customer, Long> {
     }
     
     /**
+     * Finds all customers for a specific restaurant.
+     * 
+     * @param restaurantId the restaurant ID
+     * @return list of customers for the restaurant
+     * @throws RepositoryException if search fails
+     */
+    public List<Customer> findByRestaurantId(Long restaurantId) throws RepositoryException {
+        return findByField("restaurant_id", restaurantId);
+    }
+    
+    /**
      * Searches for customers by name (first or last name).
      * Performs a case-insensitive partial match.
      * 
@@ -159,6 +170,8 @@ public class CustomerRepository extends AbstractCsvRepository<Customer, Long> {
                     return expectedValue.equals(entity.getAllergies());
                 case "notes":
                     return expectedValue.equals(entity.getNotes());
+                case "restaurant_id":
+                    return expectedValue.equals(entity.getRestaurantId());
                 default:
                     return false;
             }

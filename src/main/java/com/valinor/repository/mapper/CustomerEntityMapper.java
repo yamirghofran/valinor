@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public class CustomerEntityMapper implements EntityMapper<Customer> {
     
     private static final String[] COLUMN_NAMES = {
-        "customer_id", "first_name", "last_name", "email", "phone", "allergies", "notes"
+        "customer_id", "first_name", "last_name", "email", "phone", "allergies", "notes", "restaurant_id"
     };
     
     private static final String PRIMARY_KEY_FIELD = "customer_id";
@@ -43,6 +43,7 @@ public class CustomerEntityMapper implements EntityMapper<Customer> {
         record.put("phone", entity.getPhone() != null ? entity.getPhone() : "");
         record.put("allergies", entity.getAllergies() != null ? entity.getAllergies() : "");
         record.put("notes", entity.getNotes() != null ? entity.getNotes() : "");
+        record.put("restaurant_id", entity.getRestaurantId() != null ? entity.getRestaurantId().toString() : "");
         
         return record;
     }
@@ -81,6 +82,12 @@ public class CustomerEntityMapper implements EntityMapper<Customer> {
                 customer.setNotes(notes);
             }
             
+            // Set restaurant_id
+            String restaurantIdStr = record.get("restaurant_id");
+            if (restaurantIdStr != null && !restaurantIdStr.trim().isEmpty()) {
+                customer.setRestaurantId(Long.parseLong(restaurantIdStr.trim()));
+            }
+            
         } catch (NumberFormatException e) {
             throw new EntityValidationException("Invalid number format in customer record: " + e.getMessage(), e);
         }
@@ -98,6 +105,7 @@ public class CustomerEntityMapper implements EntityMapper<Customer> {
         columnNames.add("phone");
         columnNames.add("allergies");
         columnNames.add("notes");
+        columnNames.add("restaurant_id");
         return columnNames;
     }
     

@@ -14,6 +14,7 @@ public class Customer {
     private String phone;
     private String allergies;
     private String notes;
+    private Long restaurantId;
     
     /**
      * Default constructor.
@@ -46,8 +47,9 @@ public class Customer {
      * @param phone customer's phone number
      * @param allergies customer's allergies (optional)
      * @param notes additional notes about customer (optional)
+     * @param restaurantId the restaurant ID this customer belongs to
      */
-    public Customer(Long customerId, String firstName, String lastName, String email, String phone, String allergies, String notes) {
+    public Customer(Long customerId, String firstName, String lastName, String email, String phone, String allergies, String notes, Long restaurantId) {
         this.customerId = customerId;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -55,6 +57,7 @@ public class Customer {
         this.phone = phone;
         this.allergies = allergies;
         this.notes = notes;
+        this.restaurantId = restaurantId;
     }
     
     /**
@@ -200,6 +203,24 @@ public class Customer {
         this.notes = notes;
     }
     
+    /**
+     * Gets the restaurant ID this customer belongs to.
+     * 
+     * @return the restaurant ID
+     */
+    public Long getRestaurantId() {
+        return restaurantId;
+    }
+    
+    /**
+     * Sets the restaurant ID this customer belongs to.
+     * 
+     * @param restaurantId the restaurant ID to set
+     */
+    public void setRestaurantId(Long restaurantId) {
+        this.restaurantId = restaurantId;
+    }
+    
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -211,12 +232,13 @@ public class Customer {
                Objects.equals(email, customer.email) &&
                Objects.equals(phone, customer.phone) &&
                Objects.equals(allergies, customer.allergies) &&
-               Objects.equals(notes, customer.notes);
+               Objects.equals(notes, customer.notes) &&
+               Objects.equals(restaurantId, customer.restaurantId);
     }
     
     @Override
     public int hashCode() {
-        return Objects.hash(customerId, firstName, lastName, email, phone, allergies, notes);
+        return Objects.hash(customerId, firstName, lastName, email, phone, allergies, notes, restaurantId);
     }
     
     @Override
@@ -229,6 +251,7 @@ public class Customer {
                ", phone='" + phone + '\'' +
                ", allergies='" + allergies + '\'' +
                ", notes='" + notes + '\'' +
+               ", restaurantId=" + restaurantId +
                '}';
     }
 }

@@ -14,6 +14,7 @@ public class CreateCustomerRequest {
     private String phone;
     private String allergies;
     private String notes;
+    private Long restaurantId;
     
     /**
      * Default constructor.
@@ -102,6 +103,14 @@ public class CreateCustomerRequest {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public Long getRestaurantId() {
+        return restaurantId;
+    }
+    
+    public void setRestaurantId(Long restaurantId) {
+        this.restaurantId = restaurantId;
     }
     
     @Override

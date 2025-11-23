@@ -14,6 +14,7 @@ public class UpdateCustomerRequest {
     private String phone;
     private String allergies;
     private String notes;
+    private Long restaurantId;
     
     /**
      * Default constructor.
@@ -28,7 +29,7 @@ public class UpdateCustomerRequest {
      */
     public boolean hasUpdates() {
         return firstName != null || lastName != null || email != null ||
-               phone != null || allergies != null || notes != null;
+               phone != null || allergies != null || notes != null || restaurantId != null;
     }
     
     public String getFirstName() {
@@ -77,6 +78,14 @@ public class UpdateCustomerRequest {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public Long getRestaurantId() {
+        return restaurantId;
+    }
+    
+    public void setRestaurantId(Long restaurantId) {
+        this.restaurantId = restaurantId;
     }
     
     @Override

@@ -73,6 +73,12 @@ public class CustomerService {
             
             customer.setAllergies(request.getAllergies());
             customer.setNotes(request.getNotes());
+            customer.setRestaurantId(request.getRestaurantId());
+            
+            // Validate restaurant ID is provided
+            if (customer.getRestaurantId() == null) {
+                throw new CustomerException("Restaurant ID is required");
+            }
             
             // Save customer
             customer = customerRepository.save(customer);
@@ -153,6 +159,10 @@ public class CustomerService {
             
             if (request.getNotes() != null) {
                 customer.setNotes(request.getNotes());
+            }
+            
+            if (request.getRestaurantId() != null) {
+                customer.setRestaurantId(request.getRestaurantId());
             }
             
             // Update customer
@@ -312,6 +322,26 @@ public class CustomerService {
         } catch (RepositoryException e) {
             logger.error("Repository error during customer search", e);
             throw new CustomerException("Failed to search customers by last name", e);
+        }
+    }
+    
+    /**
+     * Gets all customers for a specific restaurant.
+     * 
+     * @param restaurantId the restaurant ID
+     * @return list of customers for the restaurant
+     * @throws CustomerException if retrieval fails
+     */
+    public List<Customer> getCustomersByRestaurant(Long restaurantId) throws CustomerException {
+        if (restaurantId == null) {
+            throw new IllegalArgumentException("Restaurant ID cannot be null");
+        }
+        
+        try {
+            return customerRepository.findByRestaurantId(restaurantId);
+        } catch (RepositoryException e) {
+            logger.error("Repository error during customers retrieval", e);
+            throw new CustomerException("Failed to retrieve customers for restaurant", e);
         }
     }
     

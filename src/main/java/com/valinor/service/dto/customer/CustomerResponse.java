@@ -18,6 +18,7 @@ public class CustomerResponse {
     private String phone;
     private String allergies;
     private String notes;
+    private Long restaurantId;
     
     /**
      * Default constructor.
@@ -60,7 +61,7 @@ public class CustomerResponse {
             return null;
         }
         
-        return new CustomerResponse(
+        CustomerResponse response = new CustomerResponse(
             customer.getCustomerId(),
             customer.getFirstName(),
             customer.getLastName(),
@@ -70,6 +71,8 @@ public class CustomerResponse {
             customer.getAllergies(),
             customer.getNotes()
         );
+        response.setRestaurantId(customer.getRestaurantId());
+        return response;
     }
     
     public Long getCustomerId() {
@@ -134,6 +137,14 @@ public class CustomerResponse {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public Long getRestaurantId() {
+        return restaurantId;
+    }
+    
+    public void setRestaurantId(Long restaurantId) {
+        this.restaurantId = restaurantId;
     }
     
     @Override
