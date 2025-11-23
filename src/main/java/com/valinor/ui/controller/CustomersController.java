@@ -1,8 +1,8 @@
 package com.valinor.ui.controller;
 
-import com.valinor.data.entity.Customer;
-import com.valinor.data.repository.CustomerRepository;
-import com.valinor.data.repository.ReservationRepository;
+import com.valinor.domain.model.Customer;
+import com.valinor.repository.CustomerRepository;
+import com.valinor.repository.ReservationRepository;
 import com.valinor.ui.util.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

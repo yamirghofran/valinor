@@ -1,9 +1,9 @@
 package com.valinor.ui.util;
 
-import com.valinor.data.dto.UserCreateRequest;
-import com.valinor.data.entity.UserRole;
-import com.valinor.data.repository.UserRepository;
-import com.valinor.data.service.UserService;
+import com.valinor.service.dto.user.UserCreateRequest;
+import com.valinor.domain.enums.UserRole;
+import com.valinor.repository.UserRepository;
+import com.valinor.service.user.UserService;
 
 /**
  * Utility to create a test user

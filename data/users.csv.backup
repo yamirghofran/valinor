@@ -3,4 +3,6 @@ user_id,username,password_hash,email,first_name,last_name,phone,role,restaurant_
 1,john_manager,$2a$12$FpJlgiokvvn4lxDtrHi2fOG4Liboq159SmTpzLtw1ciUOCvD.cy..,john@restaurant.com,John,Manager,+1-555-0101,RESTAURANT_MANAGER,1,true,2025-11-20T10:19:10.656271,2025-11-20T10:19:14.013001
 2,sarah_staff,$2a$12$eo2P7p8hZMTKuYcX9WpoM.uwiKS1WB84LUdJbvKdTTi0sq8jHbfcW,sarah.updated@restaurant.com,Sarah,Staff,+1-555-0202,FRONT_OF_HOUSE_STAFF,1,true,2025-11-20T10:19:10.938678,
 3,mike_customer,$2a$12$dvwpjS3Jii9oeUGkqhcFPu45cufpJavjPqMW2qR2uvlnrNUlCNFYa,mike@email.com,Mike,Customer,,CUSTOMER,,true,2025-11-20T10:19:11.219204,
-4,test_user,$2a$12$mNaAbe/nLYBMfOc94epNS.I4YbP3eyY5U4gtF5Bov3jIUUoSC7KqO,test@valinor.com,Test,User,+1-555-9999,RESTAURANT_MANAGER,1,true,2025-11-20T14:51:32.668726,2025-11-20T15:26:54.311878
+4,test_user,$2a$12$mNaAbe/nLYBMfOc94epNS.I4YbP3eyY5U4gtF5Bov3jIUUoSC7KqO,test@valinor.com,Test,User,+1-555-9999,RESTAURANT_MANAGER,1,true,2025-11-20T14:51:32.668726,2025-11-20T15:29:51.555268
+5,bga,$2a$12$T.ghsrDuzVnPGnC5nfu24Ox055DFjm0SfmK.1pz5mCMBNBoHODpVm,bgans@email.com,Boris,Gans,2032740366,CUSTOMER,,true,2025-11-23T14:21:24.720626,2025-11-23T14:22:27.352814
+6,bgan,$2a$12$.QIXA39rDPwJpupOt9hdEOnaT4FRwJFBtYFUKBSuYYgNZRiU2kS7i,b@b.com,boris,gans,,CUSTOMER,,true,2025-11-23T14:43:18.830774,

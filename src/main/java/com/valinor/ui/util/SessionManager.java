@@ -1,7 +1,7 @@
 package com.valinor.ui.util;
 
-import com.valinor.data.entity.UserSession;
-import com.valinor.data.dto.UserResponse;
+import com.valinor.domain.model.UserSession;
+import com.valinor.service.dto.user.UserResponse;
 
 /**
  * Manages user session state across the JavaFX application

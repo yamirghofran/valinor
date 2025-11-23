@@ -1,14 +1,14 @@
 package com.valinor.ui.controller;
 
-import com.valinor.data.entity.Customer;
-import com.valinor.data.entity.Reservation;
-import com.valinor.data.entity.ReservationStatus;
-import com.valinor.data.entity.Table;
-import com.valinor.data.entity.Section;
-import com.valinor.data.repository.CustomerRepository;
-import com.valinor.data.repository.ReservationRepository;
-import com.valinor.data.repository.TableRepository;
-import com.valinor.data.repository.SectionRepository;
+import com.valinor.domain.model.Customer;
+import com.valinor.domain.model.Reservation;
+import com.valinor.domain.enums.ReservationStatus;
+import com.valinor.domain.model.Table;
+import com.valinor.domain.model.Section;
+import com.valinor.repository.CustomerRepository;
+import com.valinor.repository.ReservationRepository;
+import com.valinor.repository.TableRepository;
+import com.valinor.repository.SectionRepository;
 import com.valinor.ui.util.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

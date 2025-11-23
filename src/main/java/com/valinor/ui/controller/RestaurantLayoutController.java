@@ -1,9 +1,9 @@
 package com.valinor.ui.controller;
 
-import com.valinor.data.entity.Section;
-import com.valinor.data.entity.Table;
-import com.valinor.data.repository.SectionRepository;
-import com.valinor.data.repository.TableRepository;
+import com.valinor.domain.model.Section;
+import com.valinor.domain.model.Table;
+import com.valinor.repository.SectionRepository;
+import com.valinor.repository.TableRepository;
 import com.valinor.ui.util.SessionManager;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;

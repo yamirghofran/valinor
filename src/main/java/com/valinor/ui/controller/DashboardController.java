@@ -1,6 +1,6 @@
 package com.valinor.ui.controller;
 
-import com.valinor.data.dto.UserResponse;
+import com.valinor.service.dto.user.UserResponse;
 import com.valinor.ui.RestaurantApp;
 import com.valinor.ui.util.SessionManager;
 import javafx.fxml.FXML;

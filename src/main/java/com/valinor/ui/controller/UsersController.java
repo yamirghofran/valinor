@@ -1,8 +1,8 @@
 package com.valinor.ui.controller;
 
-import com.valinor.data.entity.User;
-import com.valinor.data.entity.UserRole;
-import com.valinor.data.repository.UserRepository;
+import com.valinor.domain.model.User;
+import com.valinor.domain.enums.UserRole;
+import com.valinor.repository.UserRepository;
 import com.valinor.ui.util.SessionManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

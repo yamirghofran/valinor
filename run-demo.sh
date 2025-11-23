@@ -22,19 +22,19 @@ fi
 
 case $DEMO_NAME in
     customer)
-        CLASS="com.valinor.data.demo.CustomerServiceDemo"
+        CLASS="com.valinor.demo.CustomerServiceDemo"
         ;;
     reservation)
-        CLASS="com.valinor.data.demo.ReservationServiceDemo"
+        CLASS="com.valinor.demo.ReservationServiceDemo"
         ;;
     user)
-        CLASS="com.valinor.data.demo.UserManagementDemo"
+        CLASS="com.valinor.demo.UserManagementDemo"
         ;;
     layout)
-        CLASS="com.valinor.restauraunt.management.demo.RestaurantLayoutServiceDemo"
+        CLASS="com.valinor.demo.RestaurantLayoutServiceDemo"
         ;;
     table)
-        CLASS="com.valinor.restauraunt.management.demo.TableAvailabilityDemo"
+        CLASS="com.valinor.demo.TableAvailabilityDemo"
         ;;
     *)
         echo "Error: Unknown demo '$DEMO_NAME'"
