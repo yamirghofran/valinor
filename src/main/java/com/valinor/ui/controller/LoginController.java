@@ -149,6 +149,16 @@ public class LoginController {
         }
     }
 
+    @FXML
+    private void handleShowCreateRestaurant() {
+        try {
+            RestaurantApp.switchScene("create_restaurant.fxml", "Create Restaurant", 700, 800);
+        } catch (Exception e) {
+            logger.error("Failed to show create restaurant screen", e);
+            showError("Unable to load create restaurant form");
+        }
+    }
+
     private void showError(String message) {
         hideStatus();
         errorLabel.setText(message);
