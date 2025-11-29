@@ -1,0 +1,63 @@
+---
+title: Front-of-House Staff User Flow
+---
+flowchart LR
+
+    Staff((Staff))
+
+    %% AUTHENTICATION
+    subgraph Auth["Authentication"]
+        direction TB
+        Login["Log In"]
+    end
+
+    %% CUSTOMER MANAGEMENT
+    subgraph Customers["Customer Management"]
+        direction TB
+        CreateCust["Create Customer"]
+        SearchCust["Search Customers"]
+        ViewCust["View Customer Details"]
+        EditCust["Edit Customer"]
+        ViewHistory["View Reservation History"]
+        
+        SearchCust --> ViewCust
+        ViewCust --> EditCust
+        ViewCust --> ViewHistory
+    end
+
+    %% RESERVATION MANAGEMENT
+    subgraph Reservations["Reservation Management"]
+        direction TB
+        CheckAvail["Check Availability"]
+        CreateRes["Create Reservation"]
+        ModifyRes["Modify Reservation"]
+        CancelRes["Cancel Reservation"]
+        UpdateStatus["Update Status"]
+        Completed[/"Mark Completed"/]
+        NoShow[/"Mark No-Show"/]
+
+        CheckAvail --> CreateRes
+        UpdateStatus --> Completed
+        UpdateStatus --> NoShow
+    end
+
+    %% TABLE VIEW
+    subgraph Tables["Table View"]
+        direction TB
+        ViewTables["View Table Layout"]
+        CheckTable["Check Table Status"]
+    end
+
+    Logout["Log Out"]
+
+    %% Entry points from Staff to each section's main actions
+    Staff --> Login
+    Staff --> CreateCust
+    Staff --> SearchCust
+    Staff --> CheckAvail
+    Staff --> ModifyRes
+    Staff --> CancelRes
+    Staff --> UpdateStatus
+    Staff --> ViewTables
+    Staff --> CheckTable
+    Staff --> Logout
