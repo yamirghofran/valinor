@@ -1,0 +1,78 @@
+---
+title: Restaurant Manager User Flow 
+---
+flowchart LR
+    Manager(("Manager"))
+
+    %% AUTHENTICATION
+    subgraph Auth["Authentication"]
+      direction TB
+      Login["Log In"]
+    end
+
+    %% RESTAURANT LAYOUT
+    subgraph Layout["Restaurant Layout"]
+      direction TB
+      ViewLayout["View Layout"]
+      CreateSection["Create Section"]
+      EditSection["Edit Section"]
+      DeleteSection["Delete Section"]
+      CreateTable["Create Table"]
+      EditTable["Edit Table"]
+      DeleteTable["Delete Table"]
+      ToggleTable["Activate/Deactivate Table"]
+      ValidateLayout["Validate Layout"]
+    end
+
+    %% USER MANAGEMENT
+    subgraph Users["User Management"]
+      direction TB
+      ViewUsers["View Staff Users"]
+      CreateUser["Create User"]
+      EditUser["Edit User"]
+      DeactivateUser["Deactivate User"]
+      ResetPassword["Reset Password"]
+      AssignRole["Assign Role"]
+    end
+
+    %% DAILY OPERATIONS
+    subgraph Operations["Daily Operations"]
+      direction TB
+      ViewReservations["View All Reservations"]
+      ViewMetrics["View Metrics Dashboard"]
+      ManageCustomers["Manage Customers"]
+      DeleteCustomer["Delete Customer"]
+    end
+
+    %% LOGOUT (OUTSIDE SUBGRAPHS)
+    Logout["Log Out"]
+
+    %% ENTRY FROM MANAGER
+    Manager --> Login
+    Manager --> ViewLayout
+    Manager --> ViewUsers
+    Manager --> ViewReservations
+    Manager --> ViewMetrics
+    Manager --> ManageCustomers
+    Manager --> Logout
+
+    %% LAYOUT INTERNAL FLOW
+    ViewLayout --> CreateSection
+    ViewLayout --> EditSection
+    ViewLayout --> DeleteSection
+    ViewLayout --> CreateTable
+    ViewLayout --> EditTable
+    ViewLayout --> DeleteTable
+    ViewLayout --> ToggleTable
+    ViewLayout --> ValidateLayout
+    CreateSection --> CreateTable
+
+    %% USER MGMT INTERNAL FLOW
+    ViewUsers --> CreateUser
+    ViewUsers --> EditUser
+    ViewUsers --> DeactivateUser
+    ViewUsers --> ResetPassword
+    EditUser --> AssignRole
+
+    %% OPERATIONS INTERNAL FLOW
+    ManageCustomers --> DeleteCustomer
