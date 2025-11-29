@@ -1,49 +1,16 @@
 sequenceDiagram
-    title Customer Sequence Diagram - Restaurant Reservation System
+    title Customer - Reservation Flows
 
     actor Customer
     participant UI as JavaFX UI
-    participant AuthSvc as AuthenticationService
     participant ResSvc as ReservationService
     participant TableSvc as TableAvailabilityService
-    participant CustSvc as CustomerService
-    participant UserRepo as UserRepository
     participant ResRepo as ReservationRepository
-    participant TableRepo as TableRepository
     participant CustRepo as CustomerRepository
-    participant SessionRepo as UserSessionRepository
+    participant TableRepo as TableRepository
 
     %% ============================================
-    %% FLOW 1: Customer Login
-    %% ============================================
-    rect rgb(230, 245, 255)
-        Note over Customer,SessionRepo: Authentication Flow
-        Customer->>UI: Enter username & password
-        UI->>AuthSvc: login(LoginRequest)
-        AuthSvc->>UserRepo: findByUsername(username)
-        UserRepo-->>AuthSvc: Optional<User>
-        
-        alt User not found or inactive
-            AuthSvc-->>UI: AuthenticationException
-            UI-->>Customer: Display error message
-        else User found and active
-            AuthSvc->>AuthSvc: verifyPassword(password, hash)
-            alt Password invalid
-                AuthSvc-->>UI: AuthenticationException
-                UI-->>Customer: Display "Invalid credentials"
-            else Password valid
-                AuthSvc->>AuthSvc: generateSessionToken()
-                AuthSvc->>SessionRepo: save(UserSession)
-                SessionRepo-->>AuthSvc: UserSession (with ID)
-                AuthSvc->>UserRepo: update(user.lastLogin)
-                AuthSvc-->>UI: LoginResponse(token, user, permissions)
-                UI-->>Customer: Navigate to Dashboard
-            end
-        end
-    end
-
-    %% ============================================
-    %% FLOW 2: Browse Table Availability
+    %% BROWSE TABLE AVAILABILITY
     %% ============================================
     rect rgb(255, 245, 230)
         Note over Customer,TableRepo: Browse Availability Flow
@@ -58,7 +25,7 @@ sequenceDiagram
     end
 
     %% ============================================
-    %% FLOW 3: Create Reservation
+    %% CREATE RESERVATION
     %% ============================================
     rect rgb(230, 255, 230)
         Note over Customer,ResRepo: Create Reservation Flow
@@ -94,7 +61,7 @@ sequenceDiagram
     end
 
     %% ============================================
-    %% FLOW 4: View Own Reservations
+    %% VIEW OWN RESERVATIONS
     %% ============================================
     rect rgb(245, 230, 255)
         Note over Customer,ResRepo: View Reservations Flow
@@ -110,7 +77,7 @@ sequenceDiagram
     end
 
     %% ============================================
-    %% FLOW 5: Cancel Reservation
+    %% CANCEL RESERVATION
     %% ============================================
     rect rgb(255, 230, 230)
         Note over Customer,ResRepo: Cancel Reservation Flow
@@ -123,45 +90,5 @@ sequenceDiagram
         ResRepo-->>ResSvc: Reservation (updated)
         ResSvc-->>UI: Reservation
         UI-->>Customer: Display cancellation confirmation
-    end
-
-    %% ============================================
-    %% FLOW 6: Update Own Profile
-    %% ============================================
-    rect rgb(255, 255, 230)
-        Note over Customer,CustRepo: Update Profile Flow
-        Customer->>UI: Edit profile information
-        UI->>CustSvc: updateCustomer(customerId, UpdateCustomerRequest)
-        CustSvc->>CustRepo: findById(customerId)
-        CustRepo-->>CustSvc: Customer
-        
-        alt Email changed
-            CustSvc->>CustSvc: validateEmail(newEmail)
-            CustSvc->>CustRepo: findByEmail(newEmail)
-            CustRepo-->>CustSvc: Optional<Customer>
-            alt Email already exists
-                CustSvc-->>UI: CustomerException("Email exists")
-                UI-->>Customer: Display error
-            end
-        end
-        
-        CustSvc->>CustSvc: Apply updates (name, phone, allergies, notes)
-        CustSvc->>CustRepo: update(customer)
-        CustRepo-->>CustSvc: Customer (updated)
-        CustSvc-->>UI: Customer
-        UI-->>Customer: Display success message
-    end
-
-    %% ============================================
-    %% FLOW 7: Logout
-    %% ============================================
-    rect rgb(240, 240, 240)
-        Note over Customer,SessionRepo: Logout Flow
-        Customer->>UI: Click Logout
-        UI->>AuthSvc: logout(sessionToken)
-        AuthSvc->>SessionRepo: expireSession(token)
-        SessionRepo-->>AuthSvc: boolean (success)
-        AuthSvc-->>UI: void
-        UI-->>Customer: Navigate to Login screen
     end
 

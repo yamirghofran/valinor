@@ -1,0 +1,140 @@
+@startuml Customer Sequence Diagram
+!theme plain
+title Customer Sequence Diagram - Restaurant Reservation System
+
+actor Customer
+participant "JavaFX UI" as UI
+participant "AuthenticationService" as AuthSvc
+participant "ReservationService" as ResSvc
+participant "TableAvailabilityService" as TableSvc
+participant "CustomerService" as CustSvc
+participant "UserRepository" as UserRepo
+participant "ReservationRepository" as ResRepo
+participant "TableRepository" as TableRepo
+participant "CustomerRepository" as CustRepo
+participant "UserSessionRepository" as SessionRepo
+
+== Authentication Flow ==
+
+Customer -> UI : Enter username & password
+UI -> AuthSvc : login(LoginRequest)
+AuthSvc -> UserRepo : findByUsername(username)
+UserRepo --> AuthSvc : Optional<User>
+
+alt User not found or inactive
+    AuthSvc --> UI : AuthenticationException
+    UI --> Customer : Display error message
+else User found and active
+    AuthSvc -> AuthSvc : verifyPassword(password, hash)
+    alt Password invalid
+        AuthSvc --> UI : AuthenticationException
+        UI --> Customer : Display "Invalid credentials"
+    else Password valid
+        AuthSvc -> AuthSvc : generateSessionToken()
+        AuthSvc -> SessionRepo : save(UserSession)
+        SessionRepo --> AuthSvc : UserSession (with ID)
+        AuthSvc -> UserRepo : update(user.lastLogin)
+        AuthSvc --> UI : LoginResponse(token, user, permissions)
+        UI --> Customer : Navigate to Dashboard
+    end
+end
+
+== Browse Table Availability ==
+
+Customer -> UI : Select date, time, party size
+UI -> TableSvc : getAvailableTables(restaurantId, dateTime, partySize)
+TableSvc -> TableRepo : findActiveTablesBySectionId(sectionId)
+TableRepo --> TableSvc : List<Table>
+TableSvc -> ResRepo : hasConflictingReservation(tableId, dateTime, duration)
+ResRepo --> TableSvc : boolean (conflict status)
+TableSvc --> UI : List<Table> (available only)
+UI --> Customer : Display available tables with capacity
+
+== Create Reservation ==
+
+Customer -> UI : Fill reservation form
+Customer -> UI : Select preferred table (or auto-assign)
+UI -> ResSvc : createReservation(CreateReservationRequest)
+
+ResSvc -> CustRepo : findById(customerId)
+CustRepo --> ResSvc : Customer
+
+alt Table specified
+    ResSvc -> TableRepo : findById(tableId)
+    TableRepo --> ResSvc : Table
+    ResSvc -> ResSvc : validateCapacity(table, partySize)
+    ResSvc -> ResRepo : hasConflictingReservation(tableId, dateTime)
+    ResRepo --> ResSvc : boolean
+else Auto-assign table
+    ResSvc -> TableSvc : getOptimalTable(restaurantId, dateTime, partySize)
+    TableSvc -> TableRepo : findActiveTablesBySectionId()
+    TableRepo --> TableSvc : List<Table>
+    TableSvc --> ResSvc : Optional<Table> (smallest suitable)
+end
+
+alt Conflict or no availability
+    ResSvc --> UI : ReservationException
+    UI --> Customer : Display error with alternatives
+else Available
+    ResSvc -> ResRepo : save(Reservation)
+    ResRepo --> ResSvc : Reservation (with ID, status=CONFIRMED)
+    ResSvc --> UI : Reservation
+    UI --> Customer : Display confirmation
+end
+
+== View Own Reservations ==
+
+Customer -> UI : Navigate to "My Reservations"
+UI -> ResSvc : getReservationsByCustomer(customerId)
+ResSvc -> ResRepo : findByCustomerId(customerId)
+ResRepo --> ResSvc : List<Reservation>
+ResSvc -> ResSvc : toResponses(reservations)
+ResSvc --> UI : List<ReservationResponse>
+UI --> Customer : Display reservations list
+
+== Cancel Reservation ==
+
+Customer -> UI : Select reservation to cancel
+UI -> ResSvc : cancelReservation(reservationId)
+ResSvc -> ResRepo : findById(reservationId)
+ResRepo --> ResSvc : Reservation
+ResSvc -> ResSvc : setStatus(CANCELLED)
+ResSvc -> ResRepo : update(reservation)
+ResRepo --> ResSvc : Reservation (updated)
+ResSvc --> UI : Reservation
+UI --> Customer : Display cancellation confirmation
+
+== Update Own Profile ==
+
+Customer -> UI : Edit profile information
+UI -> CustSvc : updateCustomer(customerId, UpdateCustomerRequest)
+CustSvc -> CustRepo : findById(customerId)
+CustRepo --> CustSvc : Customer
+
+alt Email changed
+    CustSvc -> CustSvc : validateEmail(newEmail)
+    CustSvc -> CustRepo : findByEmail(newEmail)
+    CustRepo --> CustSvc : Optional<Customer>
+    alt Email already exists
+        CustSvc --> UI : CustomerException("Email exists")
+        UI --> Customer : Display error
+    end
+end
+
+CustSvc -> CustSvc : Apply updates
+CustSvc -> CustRepo : update(customer)
+CustRepo --> CustSvc : Customer (updated)
+CustSvc --> UI : Customer
+UI --> Customer : Display success message
+
+== Logout ==
+
+Customer -> UI : Click Logout
+UI -> AuthSvc : logout(sessionToken)
+AuthSvc -> SessionRepo : expireSession(token)
+SessionRepo --> AuthSvc : boolean (success)
+AuthSvc --> UI : void
+UI --> Customer : Navigate to Login screen
+
+@enduml
+

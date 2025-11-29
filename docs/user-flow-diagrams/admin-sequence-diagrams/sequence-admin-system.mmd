@@ -1,0 +1,82 @@
+sequenceDiagram
+    title System Admin - System Operations Flows
+
+    actor Admin as System Admin
+    participant UI as JavaFX UI
+    participant ResSvc as ReservationService
+    participant CustSvc as CustomerService
+    participant RestRepo as RestaurantRepository
+    participant UserRepo as UserRepository
+    participant SessionRepo as UserSessionRepository
+    participant ResRepo as ReservationRepository
+    participant CustRepo as CustomerRepository
+
+    %% ============================================
+    %% VIEW SYSTEM-WIDE RESERVATIONS
+    %% ============================================
+    rect rgb(235, 250, 255)
+        Note over Admin,ResRepo: View All Reservations (System-Wide) Flow
+        Admin->>UI: Navigate to "All Reservations"
+        
+        alt View all restaurants
+            loop For each restaurant
+                UI->>ResSvc: getReservationsByRestaurant(restaurantId, date)
+                ResSvc->>ResRepo: findByDate(restaurantId, date)
+                ResRepo-->>ResSvc: List<Reservation>
+            end
+            ResSvc-->>UI: Combined reservation list
+        else Filter by specific restaurant
+            Admin->>UI: Select restaurant filter
+            UI->>ResSvc: getReservationsByRestaurant(restaurantId, date)
+            ResSvc->>ResRepo: findByDate(restaurantId, date)
+            ResRepo-->>ResSvc: List<Reservation>
+            ResSvc-->>UI: List<ReservationResponse>
+        end
+        
+        UI-->>Admin: Display reservations with restaurant context
+    end
+
+    %% ============================================
+    %% VIEW SYSTEM-WIDE CUSTOMER DATA
+    %% ============================================
+    rect rgb(250, 248, 255)
+        Note over Admin,CustRepo: View All Customers (System-Wide) Flow
+        Admin->>UI: Navigate to "All Customers"
+        UI->>CustSvc: getAllCustomers()
+        CustSvc->>CustRepo: findAll()
+        CustRepo-->>CustSvc: List<Customer>
+        CustSvc-->>UI: List<CustomerResponse>
+        UI-->>Admin: Display all customers across all restaurants
+        
+        Admin->>UI: Filter by restaurant
+        UI->>CustSvc: getCustomersByRestaurant(restaurantId)
+        CustSvc->>CustRepo: findByRestaurantId(restaurantId)
+        CustRepo-->>CustSvc: List<Customer>
+        CustSvc-->>UI: List<CustomerResponse>
+        UI-->>Admin: Display filtered customers
+    end
+
+    %% ============================================
+    %% SYSTEM HEALTH CHECK
+    %% ============================================
+    rect rgb(240, 255, 255)
+        Note over Admin,SessionRepo: System Health Check Flow
+        Admin->>UI: Navigate to "System Health"
+        
+        par Check repositories
+            UI->>RestRepo: count()
+            RestRepo-->>UI: restaurant count
+        and
+            UI->>UserRepo: count()
+            UserRepo-->>UI: user count
+        and
+            UI->>SessionRepo: countActiveSessions()
+            SessionRepo-->>UI: active session count
+        and
+            UI->>ResRepo: count()
+            ResRepo-->>UI: reservation count
+        end
+        
+        UI-->>Admin: Display system health dashboard:<br/>- Total restaurants<br/>- Total users by role<br/>- Active sessions<br/>- Total reservations<br/>- Database connectivity status
+    end
+

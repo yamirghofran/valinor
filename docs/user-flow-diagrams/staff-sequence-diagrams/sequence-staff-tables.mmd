@@ -1,0 +1,75 @@
+sequenceDiagram
+    title Front-of-House Staff - Table View Flows
+
+    actor Staff as Front-of-House Staff
+    participant UI as JavaFX UI
+    participant LayoutSvc as RestaurantLayoutService
+    participant TableSvc as TableAvailabilityService
+    participant SectRepo as SectionRepository
+    participant TableRepo as TableRepository
+    participant ResRepo as ReservationRepository
+
+    %% ============================================
+    %% VIEW RESTAURANT LAYOUT
+    %% ============================================
+    rect rgb(245, 255, 245)
+        Note over Staff,TableRepo: View Layout Flow
+        Staff->>UI: Navigate to "Table View"
+        UI->>LayoutSvc: getRestaurantLayout(restaurantId)
+        LayoutSvc->>SectRepo: findByRestaurantId(restaurantId)
+        SectRepo-->>LayoutSvc: List<Section>
+        loop For each section
+            LayoutSvc->>TableRepo: findBySectionId(sectionId)
+            TableRepo-->>LayoutSvc: List<Table>
+        end
+        LayoutSvc-->>UI: RestaurantLayoutDTO
+        UI-->>Staff: Display visual layout with sections and tables
+    end
+
+    %% ============================================
+    %% CHECK TABLE STATUS
+    %% ============================================
+    rect rgb(255, 250, 240)
+        Note over Staff,ResRepo: Check Table Status Flow
+        Staff->>UI: Select table to check
+        UI->>TableSvc: isTableAvailable(tableId, now)
+        TableSvc->>TableRepo: findById(tableId)
+        TableRepo-->>TableSvc: Table
+        
+        alt Table inactive
+            TableSvc-->>UI: false (inactive)
+            UI-->>Staff: Display "Table is inactive"
+        else Table active
+            TableSvc->>ResRepo: hasConflictingReservation(tableId, now, 120min)
+            ResRepo-->>TableSvc: boolean
+            alt Has reservation
+                TableSvc-->>UI: false (occupied)
+                UI-->>Staff: Display "Table occupied" with reservation details
+            else Available
+                TableSvc-->>UI: true
+                UI-->>Staff: Display "Table available"
+            end
+        end
+    end
+
+    %% ============================================
+    %% CHECK CAPACITY FOR TIME SLOT
+    %% ============================================
+    rect rgb(240, 245, 255)
+        Note over Staff,ResRepo: Check Capacity Flow
+        Staff->>UI: Select date/time to check capacity
+        UI->>TableSvc: getAvailableCapacity(restaurantId, dateTime)
+        TableSvc->>SectRepo: findByRestaurantId(restaurantId)
+        SectRepo-->>TableSvc: List<Section>
+        loop For each section
+            TableSvc->>TableRepo: findActiveTablesBySectionId(sectionId)
+            TableRepo-->>TableSvc: List<Table>
+            loop For each table
+                TableSvc->>ResRepo: hasConflictingReservation(tableId, dateTime, 120min)
+                ResRepo-->>TableSvc: boolean
+            end
+        end
+        TableSvc-->>UI: int (total available seats)
+        UI-->>Staff: Display "X seats available at [time]"
+    end
+

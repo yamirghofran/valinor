@@ -1,0 +1,62 @@
+sequenceDiagram
+    title System Admin - Session Management Flows
+
+    actor Admin as System Admin
+    participant UI as JavaFX UI
+    participant AuthSvc as AuthenticationService
+    participant UserRepo as UserRepository
+    participant SessionRepo as UserSessionRepository
+
+    %% ============================================
+    %% VIEW ALL ACTIVE SESSIONS
+    %% ============================================
+    rect rgb(240, 250, 255)
+        Note over Admin,SessionRepo: View Sessions Flow
+        Admin->>UI: Navigate to "Active Sessions"
+        UI->>SessionRepo: findAllActiveSessions()
+        SessionRepo-->>UI: List<UserSession>
+        UI->>UserRepo: findById() [for each session]
+        UserRepo-->>UI: User details
+        UI-->>Admin: Display all active sessions with user info
+    end
+
+    %% ============================================
+    %% TERMINATE SPECIFIC SESSION
+    %% ============================================
+    rect rgb(255, 245, 240)
+        Note over Admin,SessionRepo: Terminate Session Flow
+        Admin->>UI: Select session to terminate
+        UI->>AuthSvc: logout(sessionToken)
+        AuthSvc->>SessionRepo: expireSession(sessionToken)
+        SessionRepo-->>AuthSvc: boolean
+        AuthSvc-->>UI: void
+        UI-->>Admin: Session terminated
+    end
+
+    %% ============================================
+    %% FORCE LOGOUT ALL SESSIONS FOR USER
+    %% ============================================
+    rect rgb(255, 240, 235)
+        Note over Admin,SessionRepo: Force Logout User Flow
+        Admin->>UI: Select user, "Force Logout All"
+        UI->>AuthSvc: logoutAllSessions(userId)
+        AuthSvc->>SessionRepo: expireAllUserSessions(userId)
+        SessionRepo-->>AuthSvc: int (count)
+        AuthSvc-->>UI: int
+        UI-->>Admin: N sessions terminated for user
+    end
+
+    %% ============================================
+    %% CLEANUP EXPIRED SESSIONS
+    %% ============================================
+    rect rgb(245, 255, 250)
+        Note over Admin,SessionRepo: Session Cleanup Flow
+        Admin->>UI: Click "Cleanup Expired Sessions"
+        UI->>AuthSvc: cleanupExpiredSessions()
+        AuthSvc->>SessionRepo: cleanupExpiredSessions()
+        SessionRepo->>SessionRepo: DELETE WHERE expiresAt < NOW() OR isActive = false
+        SessionRepo-->>AuthSvc: int (sessions cleaned)
+        AuthSvc-->>UI: int
+        UI-->>Admin: Cleaned up N expired sessions
+    end
+

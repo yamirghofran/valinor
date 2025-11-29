@@ -1,0 +1,165 @@
+sequenceDiagram
+    title System Admin - User Management Flows
+
+    actor Admin as System Admin
+    participant UI as JavaFX UI
+    participant UserSvc as UserService
+    participant AuthSvc as AuthenticationService
+    participant UserRepo as UserRepository
+    participant RestRepo as RestaurantRepository
+    participant SessionRepo as UserSessionRepository
+
+    %% ============================================
+    %% VIEW ALL USERS (CROSS-RESTAURANT)
+    %% ============================================
+    rect rgb(255, 245, 240)
+        Note over Admin,UserRepo: Cross-Restaurant User Management Flow
+        Admin->>UI: Navigate to "User Management"
+        UI->>UserSvc: getAllUsers()
+        UserSvc->>UserRepo: findAll()
+        UserRepo-->>UserSvc: List<User>
+        UserSvc-->>UI: List<UserResponse>
+        UI-->>Admin: Display all users (all restaurants, all roles)
+        
+        Admin->>UI: Filter by restaurant or role
+        alt Filter by restaurant
+            UI->>UserSvc: getUsersByRestaurant(restaurantId)
+            UserSvc->>UserRepo: findByRestaurantId(restaurantId)
+            UserRepo-->>UserSvc: List<User>
+        else Filter by role
+            UI->>UserSvc: getUsersByRole(role)
+            UserSvc->>UserRepo: findByRole(role)
+            UserRepo-->>UserSvc: List<User>
+        end
+        UserSvc-->>UI: List<UserResponse>
+        UI-->>Admin: Display filtered users
+    end
+
+    %% ============================================
+    %% CREATE ANY USER TYPE
+    %% ============================================
+    rect rgb(245, 255, 245)
+        Note over Admin,UserRepo: Create User (Any Role) Flow
+        Admin->>UI: Click "Create User"
+        Admin->>UI: Enter user details
+        Admin->>UI: Select role (SYSTEM_ADMIN, RESTAURANT_MANAGER, FRONT_OF_HOUSE_STAFF, CUSTOMER)
+        Admin->>UI: Assign to restaurant (optional for SYSTEM_ADMIN)
+        UI->>UserSvc: createUser(UserCreateRequest)
+        
+        UserSvc->>UserSvc: validateCreateRequest()
+        UserSvc->>UserRepo: existsByUsername(username)
+        UserRepo-->>UserSvc: boolean
+        UserSvc->>UserRepo: existsByEmail(email)
+        UserRepo-->>UserSvc: boolean
+        
+        alt Duplicate found
+            UserSvc-->>UI: DuplicateUserException
+            UI-->>Admin: Display error
+        else Unique
+            UserSvc->>UserSvc: hashPassword(password)
+            UserSvc->>UserRepo: save(User)
+            UserRepo-->>UserSvc: User
+            UserSvc-->>UI: User
+            UI-->>Admin: Display new user
+        end
+    end
+
+    %% ============================================
+    %% ASSIGN/CHANGE USER ROLES
+    %% ============================================
+    rect rgb(250, 245, 255)
+        Note over Admin,UserRepo: Assign Roles Flow
+        Admin->>UI: Select user to modify
+        Admin->>UI: Change role assignment
+        UI->>UserSvc: updateUser(userId, UserUpdateRequest)
+        UserSvc->>UserRepo: findById(userId)
+        UserRepo-->>UserSvc: User
+        Note right of UserSvc: Admin can assign ANY role:<br/>SYSTEM_ADMIN<br/>RESTAURANT_MANAGER<br/>FRONT_OF_HOUSE_STAFF<br/>CUSTOMER
+        UserSvc->>UserSvc: Apply role change
+        UserSvc->>UserRepo: update(user)
+        UserRepo-->>UserSvc: User
+        UserSvc-->>UI: User
+        UI-->>Admin: Display updated user with new role
+    end
+
+    %% ============================================
+    %% TRANSFER USER TO DIFFERENT RESTAURANT
+    %% ============================================
+    rect rgb(255, 252, 240)
+        Note over Admin,UserRepo: Transfer User Flow
+        Admin->>UI: Select user
+        Admin->>UI: Change restaurant assignment
+        UI->>UserSvc: updateUser(userId, {restaurantId: newRestaurantId})
+        UserSvc->>UserRepo: findById(userId)
+        UserRepo-->>UserSvc: User
+        UserSvc->>RestRepo: findById(newRestaurantId)
+        RestRepo-->>UserSvc: Restaurant (verify exists)
+        UserSvc->>UserSvc: Update restaurantId
+        UserSvc->>UserRepo: update(user)
+        UserRepo-->>UserSvc: User
+        UserSvc-->>UI: User
+        UI-->>Admin: User transferred to new restaurant
+    end
+
+    %% ============================================
+    %% DELETE USER ACCOUNT (PERMANENT)
+    %% ============================================
+    rect rgb(255, 235, 235)
+        Note over Admin,SessionRepo: Delete User Flow
+        Admin->>UI: Select user to delete
+        UI->>UI: Confirm deletion dialog (permanent action)
+        Admin->>UI: Confirm deletion
+        
+        UI->>AuthSvc: logoutAllSessions(userId)
+        AuthSvc->>SessionRepo: expireAllUserSessions(userId)
+        SessionRepo-->>AuthSvc: int (sessions terminated)
+        
+        UI->>UserSvc: deleteUser(userId)
+        UserSvc->>UserRepo: deleteById(userId)
+        UserRepo-->>UserSvc: boolean (success)
+        UserSvc-->>UI: void
+        UI-->>Admin: User permanently removed
+    end
+
+    %% ============================================
+    %% FORCE PASSWORD RESET
+    %% ============================================
+    rect rgb(255, 245, 250)
+        Note over Admin,UserRepo: Force Password Reset Flow
+        Admin->>UI: Select user
+        Admin->>UI: Click "Force Password Reset"
+        Admin->>UI: Enter new password
+        UI->>UserSvc: resetPassword(userId, newPassword)
+        UserSvc->>UserSvc: validatePassword(newPassword)
+        
+        alt Password invalid
+            UserSvc-->>UI: UserServiceException
+            UI-->>Admin: Display password requirements
+        else Valid
+            UserSvc->>UserRepo: findById(userId)
+            UserRepo-->>UserSvc: User
+            UserSvc->>UserSvc: hashPassword(newPassword)
+            UserSvc->>UserRepo: update(user)
+            
+            Note right of UserSvc: Optionally force logout
+            UI->>AuthSvc: logoutAllSessions(userId)
+            AuthSvc->>SessionRepo: expireAllUserSessions(userId)
+            
+            UserSvc-->>UI: void
+            UI-->>Admin: Password reset, user must re-login
+        end
+    end
+
+    %% ============================================
+    %% AUDIT USER ACTIVITY
+    %% ============================================
+    rect rgb(250, 255, 245)
+        Note over Admin,SessionRepo: Audit User Activity Flow
+        Admin->>UI: Select user to audit
+        UI->>UserRepo: findById(userId)
+        UserRepo-->>UI: User (includes lastLogin, createdAt)
+        UI->>SessionRepo: findByUserId(userId)
+        SessionRepo-->>UI: List<UserSession> (login history)
+        UI-->>Admin: Display user activity:<br/>- Account creation date<br/>- Last login<br/>- Session history<br/>- IP addresses
+    end
+

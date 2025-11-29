@@ -1,0 +1,169 @@
+sequenceDiagram
+    title Front-of-House Staff - Reservation Management Flows
+
+    actor Staff as Front-of-House Staff
+    participant UI as JavaFX UI
+    participant ResSvc as ReservationService
+    participant TableSvc as TableAvailabilityService
+    participant CustRepo as CustomerRepository
+    participant ResRepo as ReservationRepository
+    participant TableRepo as TableRepository
+
+    %% ============================================
+    %% CHECK TABLE AVAILABILITY
+    %% ============================================
+    rect rgb(255, 240, 245)
+        Note over Staff,ResRepo: Check Availability Flow
+        Staff->>UI: Select date, time, party size
+        UI->>TableSvc: getAvailableTables(restaurantId, dateTime, partySize)
+        
+        loop For each section in restaurant
+            TableSvc->>TableRepo: findActiveTablesBySectionId(sectionId)
+            TableRepo-->>TableSvc: List<Table>
+            loop For each suitable table
+                TableSvc->>ResRepo: hasConflictingReservation(tableId, dateTime, duration)
+                ResRepo-->>TableSvc: boolean
+            end
+        end
+        
+        TableSvc-->>UI: List<Table> (available, sorted by capacity)
+        UI-->>Staff: Display available tables grouped by section
+    end
+
+    %% ============================================
+    %% CREATE RESERVATION
+    %% ============================================
+    rect rgb(230, 255, 230)
+        Note over Staff,ResRepo: Create Reservation Flow
+        Staff->>UI: Select customer from list or search
+        Staff->>UI: Enter reservation details (date, time, party size, special requests)
+        Staff->>UI: Select table or choose auto-assign
+        UI->>ResSvc: createReservation(CreateReservationRequest)
+        
+        ResSvc->>CustRepo: findById(customerId)
+        CustRepo-->>ResSvc: Customer (verify exists)
+        
+        alt Manual table selection
+            ResSvc->>TableRepo: findById(tableId)
+            TableRepo-->>ResSvc: Table
+            ResSvc->>ResSvc: validate capacity >= partySize
+            ResSvc->>ResRepo: hasConflictingReservation(tableId, dateTime, 120min)
+            ResRepo-->>ResSvc: boolean
+            alt Conflict detected
+                ResSvc-->>UI: ReservationConflictException
+                UI->>TableSvc: suggestAlternativeTables(tableId, dateTime, partySize)
+                TableSvc-->>UI: List<Table> alternatives
+                UI-->>Staff: Show conflict, suggest alternatives
+            end
+        else Auto-assign
+            ResSvc->>TableSvc: getOptimalTable(restaurantId, dateTime, partySize)
+            TableSvc-->>ResSvc: Optional<Table> (smallest suitable)
+            alt No table available
+                ResSvc-->>UI: ReservationException("No tables available")
+                UI-->>Staff: Display no availability message
+            end
+        end
+        
+        ResSvc->>ResRepo: save(Reservation)
+        ResRepo-->>ResSvc: Reservation (status=CONFIRMED)
+        ResSvc-->>UI: Reservation
+        UI-->>Staff: Display confirmation with reservation ID
+    end
+
+    %% ============================================
+    %% MODIFY RESERVATION
+    %% ============================================
+    rect rgb(245, 245, 230)
+        Note over Staff,ResRepo: Modify Reservation Flow
+        Staff->>UI: Search/select reservation to modify
+        UI->>ResSvc: getReservationById(reservationId)
+        ResSvc->>ResRepo: findById(reservationId)
+        ResRepo-->>ResSvc: Reservation
+        ResSvc-->>UI: ReservationResponse
+        UI-->>Staff: Display current reservation details
+        
+        Staff->>UI: Modify fields (time, party size, table, special requests)
+        UI->>ResSvc: updateReservation(reservationId, UpdateReservationRequest)
+        
+        alt Table changed
+            ResSvc->>TableRepo: findById(newTableId)
+            TableRepo-->>ResSvc: Table
+            ResSvc->>ResSvc: validate new capacity
+            ResSvc->>ResRepo: hasConflictingReservation(newTableId, dateTime, duration, excludeId)
+            ResRepo-->>ResSvc: boolean (excluding current reservation)
+        end
+        
+        alt Time changed
+            ResSvc->>ResRepo: hasConflictingReservation(tableId, newDateTime, duration, excludeId)
+            ResRepo-->>ResSvc: boolean
+        end
+        
+        ResSvc->>ResRepo: update(reservation)
+        ResRepo-->>ResSvc: Reservation (updated)
+        ResSvc-->>UI: Reservation
+        UI-->>Staff: Display updated reservation confirmation
+    end
+
+    %% ============================================
+    %% CANCEL RESERVATION
+    %% ============================================
+    rect rgb(255, 230, 230)
+        Note over Staff,ResRepo: Cancel Reservation Flow
+        Staff->>UI: Select reservation to cancel
+        UI->>ResSvc: cancelReservation(reservationId)
+        ResSvc->>ResRepo: findById(reservationId)
+        ResRepo-->>ResSvc: Reservation
+        ResSvc->>ResSvc: setStatus(CANCELLED)
+        ResSvc->>ResSvc: markAsUpdated()
+        ResSvc->>ResRepo: update(reservation)
+        ResRepo-->>ResSvc: Reservation
+        ResSvc-->>UI: Reservation (status=CANCELLED)
+        UI-->>Staff: Display cancellation confirmation
+    end
+
+    %% ============================================
+    %% UPDATE RESERVATION STATUS
+    %% ============================================
+    rect rgb(230, 240, 255)
+        Note over Staff,ResRepo: Update Status Flow
+        Staff->>UI: View today's reservations
+        UI->>ResSvc: getReservationsByRestaurant(restaurantId, today)
+        ResSvc->>ResRepo: findByDate(restaurantId, date)
+        ResRepo-->>ResSvc: List<Reservation>
+        ResSvc-->>UI: List<ReservationResponse>
+        UI-->>Staff: Display today's reservations
+        
+        alt Mark as Completed (party finished dining)
+            Staff->>UI: Click "Complete" on reservation
+            UI->>ResSvc: markAsCompleted(reservationId)
+            ResSvc->>ResRepo: findById(reservationId)
+            ResSvc->>ResSvc: setStatus(COMPLETED)
+            ResSvc->>ResRepo: update(reservation)
+            ResSvc-->>UI: Reservation
+            UI-->>Staff: Status updated to COMPLETED
+        else Mark as No-Show
+            Staff->>UI: Click "No-Show" on reservation
+            UI->>ResSvc: markAsNoShow(reservationId)
+            ResSvc->>ResRepo: findById(reservationId)
+            ResSvc->>ResSvc: setStatus(NO_SHOW)
+            ResSvc->>ResRepo: update(reservation)
+            ResSvc-->>UI: Reservation
+            UI-->>Staff: Status updated to NO_SHOW
+        end
+    end
+
+    %% ============================================
+    %% VIEW ACTIVE RESERVATIONS
+    %% ============================================
+    rect rgb(240, 255, 240)
+        Note over Staff,ResRepo: View Active Reservations Flow
+        Staff->>UI: Navigate to Active Reservations
+        UI->>ResSvc: getActiveReservations(restaurantId)
+        ResSvc->>ResRepo: findActiveReservations(restaurantId, now)
+        ResRepo-->>ResSvc: List<Reservation> (CONFIRMED, future/current)
+        ResSvc->>CustRepo: findById() [enrich with customer names]
+        ResSvc->>TableRepo: findById() [enrich with table numbers]
+        ResSvc-->>UI: List<ReservationResponse>
+        UI-->>Staff: Display active reservations sorted by time
+    end
+

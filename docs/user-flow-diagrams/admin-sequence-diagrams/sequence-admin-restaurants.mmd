@@ -1,0 +1,125 @@
+sequenceDiagram
+    title System Admin - Restaurant Management Flows
+
+    actor Admin as System Admin
+    participant UI as JavaFX UI
+    participant RestSvc as RestaurantService
+    participant LayoutSvc as RestaurantLayoutService
+    participant UserSvc as UserService
+    participant AuthSvc as AuthenticationService
+    participant RestRepo as RestaurantRepository
+    participant SectRepo as SectionRepository
+    participant TableRepo as TableRepository
+    participant UserRepo as UserRepository
+    participant ResRepo as ReservationRepository
+    participant CustRepo as CustomerRepository
+
+    %% ============================================
+    %% VIEW ALL RESTAURANTS
+    %% ============================================
+    rect rgb(255, 250, 240)
+        Note over Admin,RestRepo: View All Restaurants Flow
+        Admin->>UI: Navigate to "System Management"
+        UI->>RestRepo: findAll()
+        RestRepo-->>UI: List<Restaurant>
+        UI-->>Admin: Display all restaurants in system
+        
+        Admin->>UI: Select restaurant to manage
+        UI->>LayoutSvc: getRestaurantLayout(restaurantId)
+        LayoutSvc->>SectRepo: findByRestaurantId(restaurantId)
+        SectRepo-->>LayoutSvc: List<Section>
+        loop For each section
+            LayoutSvc->>TableRepo: findBySectionId(sectionId)
+            TableRepo-->>LayoutSvc: List<Table>
+        end
+        LayoutSvc-->>UI: RestaurantLayoutDTO
+        UI-->>Admin: Display selected restaurant's full details
+    end
+
+    %% ============================================
+    %% CREATE NEW RESTAURANT
+    %% ============================================
+    rect rgb(230, 255, 245)
+        Note over Admin,RestRepo: Create Restaurant Flow
+        Admin->>UI: Click "Add Restaurant"
+        Admin->>UI: Enter restaurant details (name, location, contact)
+        UI->>RestSvc: createRestaurant(CreateRestaurantRequest)
+        RestSvc->>RestSvc: validateRequest()
+        RestSvc->>RestRepo: save(Restaurant)
+        RestRepo-->>RestSvc: Restaurant (with restaurantId)
+        RestSvc-->>UI: Restaurant
+        UI-->>Admin: Display new restaurant, ready for layout setup
+    end
+
+    %% ============================================
+    %% UPDATE RESTAURANT SETTINGS
+    %% ============================================
+    rect rgb(245, 250, 255)
+        Note over Admin,RestRepo: Update Restaurant Settings Flow
+        Admin->>UI: Select restaurant settings
+        Admin->>UI: Modify details (name, location, contact email/phone)
+        UI->>RestSvc: updateRestaurant(restaurantId, UpdateRequest)
+        RestSvc->>RestRepo: findById(restaurantId)
+        RestRepo-->>RestSvc: Restaurant
+        RestSvc->>RestSvc: Apply updates
+        RestSvc->>RestRepo: update(restaurant)
+        RestRepo-->>RestSvc: Restaurant
+        RestSvc-->>UI: Restaurant
+        UI-->>Admin: Display updated restaurant settings
+    end
+
+    %% ============================================
+    %% MANAGE ANY RESTAURANT LAYOUT
+    %% ============================================
+    rect rgb(245, 250, 240)
+        Note over Admin,TableRepo: Cross-Restaurant Layout Management Flow
+        Admin->>UI: Select any restaurant
+        Admin->>UI: Modify layout (sections/tables)
+        
+        Note right of Admin: Admin can perform all Manager actions<br/>on ANY restaurant in the system
+        
+        alt Create section
+            UI->>LayoutSvc: createSection(CreateSectionRequest)
+            LayoutSvc->>SectRepo: save(Section)
+            LayoutSvc-->>UI: Section
+        else Create table
+            UI->>LayoutSvc: createTable(CreateTableRequest)
+            LayoutSvc->>TableRepo: save(Table)
+            LayoutSvc-->>UI: Table
+        else Delete section (cascade)
+            UI->>LayoutSvc: deleteSection(sectionId, cascade=true)
+            LayoutSvc->>TableRepo: deleteBySectionId(sectionId)
+            LayoutSvc->>SectRepo: deleteById(sectionId)
+            LayoutSvc-->>UI: int (tables deleted)
+        end
+        
+        UI-->>Admin: Layout updated for selected restaurant
+    end
+
+    %% ============================================
+    %% DELETE RESTAURANT (CASCADE)
+    %% ============================================
+    rect rgb(255, 230, 230)
+        Note over Admin,CustRepo: Delete Restaurant Flow
+        Admin->>UI: Select restaurant to delete
+        UI->>UI: Confirm deletion (PERMANENT - all data lost)
+        Admin->>UI: Confirm with typed confirmation
+        
+        Note right of UI: Cascade delete order:<br/>1. Sessions for restaurant users<br/>2. Reservations<br/>3. Tables<br/>4. Sections<br/>5. Customers<br/>6. Users<br/>7. Restaurant
+        
+        UI->>UserSvc: getUsersByRestaurant(restaurantId)
+        UserSvc-->>UI: List<User>
+        loop For each user
+            UI->>AuthSvc: logoutAllSessions(userId)
+        end
+        
+        UI->>ResRepo: deleteByRestaurantId(restaurantId)
+        UI->>TableRepo: deleteByRestaurantId(restaurantId)
+        UI->>SectRepo: deleteByRestaurantId(restaurantId)
+        UI->>CustRepo: deleteByRestaurantId(restaurantId)
+        UI->>UserRepo: deleteByRestaurantId(restaurantId)
+        UI->>RestRepo: deleteById(restaurantId)
+        
+        UI-->>Admin: Restaurant and all associated data deleted
+    end
+
