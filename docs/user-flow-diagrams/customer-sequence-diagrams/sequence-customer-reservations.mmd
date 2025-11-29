@@ -1,0 +1,94 @@
+sequenceDiagram
+    title Customer - Reservation Flows
+
+    actor Customer
+    participant UI as JavaFX UI
+    participant ResSvc as ReservationService
+    participant TableSvc as TableAvailabilityService
+    participant ResRepo as ReservationRepository
+    participant CustRepo as CustomerRepository
+    participant TableRepo as TableRepository
+
+    %% ============================================
+    %% BROWSE TABLE AVAILABILITY
+    %% ============================================
+    rect rgb(255, 245, 230)
+        Note over Customer,TableRepo: Browse Availability Flow
+        Customer->>UI: Select date, time, party size
+        UI->>TableSvc: getAvailableTables(restaurantId, dateTime, partySize)
+        TableSvc->>TableRepo: findActiveTablesBySectionId(sectionId)
+        TableRepo-->>TableSvc: List<Table>
+        TableSvc->>ResRepo: hasConflictingReservation(tableId, dateTime, duration)
+        ResRepo-->>TableSvc: boolean (conflict status)
+        TableSvc-->>UI: List<Table> (available only)
+        UI-->>Customer: Display available tables with capacity
+    end
+
+    %% ============================================
+    %% CREATE RESERVATION
+    %% ============================================
+    rect rgb(230, 255, 230)
+        Note over Customer,ResRepo: Create Reservation Flow
+        Customer->>UI: Fill reservation form (date, time, party size, requests)
+        Customer->>UI: Select preferred table (or auto-assign)
+        UI->>ResSvc: createReservation(CreateReservationRequest)
+        
+        ResSvc->>CustRepo: findById(customerId)
+        CustRepo-->>ResSvc: Customer
+        
+        alt Table specified
+            ResSvc->>TableRepo: findById(tableId)
+            TableRepo-->>ResSvc: Table
+            ResSvc->>ResSvc: validateCapacity(table, partySize)
+            ResSvc->>ResRepo: hasConflictingReservation(tableId, dateTime)
+            ResRepo-->>ResSvc: boolean
+        else Auto-assign table
+            ResSvc->>TableSvc: getOptimalTable(restaurantId, dateTime, partySize)
+            TableSvc->>TableRepo: findActiveTablesBySectionId()
+            TableRepo-->>TableSvc: List<Table>
+            TableSvc-->>ResSvc: Optional<Table> (smallest suitable)
+        end
+        
+        alt Conflict or no availability
+            ResSvc-->>UI: ReservationException
+            UI-->>Customer: Display error with alternatives
+        else Available
+            ResSvc->>ResRepo: save(Reservation)
+            ResRepo-->>ResSvc: Reservation (with ID, status=CONFIRMED)
+            ResSvc-->>UI: Reservation
+            UI-->>Customer: Display confirmation with details
+        end
+    end
+
+    %% ============================================
+    %% VIEW OWN RESERVATIONS
+    %% ============================================
+    rect rgb(245, 230, 255)
+        Note over Customer,ResRepo: View Reservations Flow
+        Customer->>UI: Navigate to "My Reservations"
+        UI->>ResSvc: getReservationsByCustomer(customerId)
+        ResSvc->>ResRepo: findByCustomerId(customerId)
+        ResRepo-->>ResSvc: List<Reservation>
+        ResSvc->>ResSvc: toResponses(reservations)
+        ResSvc->>CustRepo: findById() [enrich customer name]
+        ResSvc->>TableRepo: findById() [enrich table number]
+        ResSvc-->>UI: List<ReservationResponse>
+        UI-->>Customer: Display reservations list with details
+    end
+
+    %% ============================================
+    %% CANCEL RESERVATION
+    %% ============================================
+    rect rgb(255, 230, 230)
+        Note over Customer,ResRepo: Cancel Reservation Flow
+        Customer->>UI: Select reservation to cancel
+        UI->>ResSvc: cancelReservation(reservationId)
+        ResSvc->>ResRepo: findById(reservationId)
+        ResRepo-->>ResSvc: Reservation
+        ResSvc->>ResSvc: setStatus(CANCELLED)
+        ResSvc->>ResRepo: update(reservation)
+        ResRepo-->>ResSvc: Reservation (updated)
+        ResSvc-->>UI: Reservation
+        UI-->>Customer: Display cancellation confirmation
+    end
+

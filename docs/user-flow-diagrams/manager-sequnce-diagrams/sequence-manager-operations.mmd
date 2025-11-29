@@ -1,0 +1,101 @@
+sequenceDiagram
+    title Restaurant Manager - Operations & Dashboard Flows
+
+    actor Manager as Restaurant Manager
+    participant UI as JavaFX UI
+    participant ResSvc as ReservationService
+    participant CustSvc as CustomerService
+    participant TableSvc as TableAvailabilityService
+    participant ResRepo as ReservationRepository
+    participant CustRepo as CustomerRepository
+    participant TableRepo as TableRepository
+    participant SectRepo as SectionRepository
+
+    %% ============================================
+    %% VIEW ALL RESERVATIONS (DASHBOARD)
+    %% ============================================
+    rect rgb(235, 250, 255)
+        Note over Manager,ResRepo: View All Reservations Flow
+        Manager->>UI: Navigate to Dashboard / Reservations
+        UI->>ResSvc: getReservationsByRestaurant(restaurantId, date)
+        ResSvc->>ResRepo: findByDate(restaurantId, date)
+        ResRepo-->>ResSvc: List<Reservation>
+        ResSvc->>CustRepo: findById() [for each]
+        CustRepo-->>ResSvc: Customer names
+        ResSvc->>TableRepo: findById() [for each]
+        TableRepo-->>ResSvc: Table numbers
+        ResSvc-->>UI: List<ReservationResponse>
+        UI-->>Manager: Display all reservations with filters
+    end
+
+    %% ============================================
+    %% VIEW OPERATIONAL METRICS
+    %% ============================================
+    rect rgb(250, 255, 240)
+        Note over Manager,TableRepo: View Metrics Flow
+        Manager->>UI: Navigate to "Reports" or Dashboard
+        UI->>TableSvc: getAvailableCapacity(restaurantId, now)
+        TableSvc->>SectRepo: findByRestaurantId(restaurantId)
+        SectRepo-->>TableSvc: List<Section>
+        TableSvc->>TableRepo: findActiveTablesBySectionId() [each section]
+        TableRepo-->>TableSvc: List<Table>
+        TableSvc->>ResRepo: hasConflictingReservation() [for each]
+        TableSvc-->>UI: int (available capacity)
+        
+        UI->>ResSvc: getActiveReservations(restaurantId)
+        ResSvc->>ResRepo: findActiveReservations(restaurantId, now)
+        ResRepo-->>ResSvc: List<Reservation>
+        ResSvc-->>UI: List<ReservationResponse>
+        
+        UI-->>Manager: Display metrics (capacity, reservations, status breakdown)
+    end
+
+    %% ============================================
+    %% MANAGE CUSTOMERS
+    %% ============================================
+    rect rgb(255, 250, 245)
+        Note over Manager,CustRepo: View Customers Flow
+        Manager->>UI: Navigate to "Customers"
+        UI->>CustSvc: getCustomersByRestaurant(restaurantId)
+        CustSvc->>CustRepo: findByRestaurantId(restaurantId)
+        CustRepo-->>CustSvc: List<Customer>
+        CustSvc-->>UI: List<CustomerResponse>
+        UI-->>Manager: Display all customers with search/filter
+    end
+
+    %% ============================================
+    %% DELETE CUSTOMER (MANAGER ONLY)
+    %% ============================================
+    rect rgb(255, 235, 235)
+        Note over Manager,CustRepo: Delete Customer Flow
+        Manager->>UI: Search for customer
+        Manager->>UI: Select customer, click "Delete"
+        UI->>UI: Confirm deletion dialog
+        Manager->>UI: Confirm
+        UI->>CustSvc: deleteCustomer(customerId)
+        CustSvc->>CustRepo: deleteById(customerId)
+        CustRepo-->>CustSvc: boolean (success)
+        
+        alt Customer not found
+            CustSvc-->>UI: CustomerException
+            UI-->>Manager: Display "Customer not found"
+        else Success
+            CustSvc-->>UI: void
+            UI-->>Manager: Customer removed from system
+        end
+    end
+
+    %% ============================================
+    %% VIEW RESERVATIONS BY STATUS
+    %% ============================================
+    rect rgb(245, 245, 255)
+        Note over Manager,ResRepo: Filter Reservations Flow
+        Manager->>UI: Apply status filter (CONFIRMED/COMPLETED/CANCELLED/NO_SHOW)
+        UI->>ResSvc: getReservationsByRestaurant(restaurantId, date)
+        ResSvc->>ResRepo: findByDate(restaurantId, date)
+        ResRepo-->>ResSvc: List<Reservation>
+        ResSvc-->>UI: List<ReservationResponse>
+        UI->>UI: Filter by selected status
+        UI-->>Manager: Display filtered reservations
+    end
+

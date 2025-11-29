@@ -1,0 +1,327 @@
+@startuml Restaurant Manager Sequence Diagram
+!theme plain
+title Restaurant Manager Sequence Diagram - Restaurant Reservation System
+
+actor "Restaurant Manager" as Manager
+participant "JavaFX UI" as UI
+participant "AuthenticationService" as AuthSvc
+participant "RestaurantLayoutService" as LayoutSvc
+participant "LayoutValidationService" as ValidationSvc
+participant "UserService" as UserSvc
+participant "ReservationService" as ResSvc
+participant "CustomerService" as CustSvc
+participant "TableAvailabilityService" as TableSvc
+participant "RestaurantRepository" as RestRepo
+participant "SectionRepository" as SectRepo
+participant "TableRepository" as TableRepo
+participant "UserRepository" as UserRepo
+participant "ReservationRepository" as ResRepo
+participant "CustomerRepository" as CustRepo
+participant "UserSessionRepository" as SessionRepo
+
+== Manager Authentication ==
+
+Manager -> UI : Enter credentials
+UI -> AuthSvc : login(LoginRequest)
+AuthSvc -> UserRepo : findByUsername(username)
+UserRepo --> AuthSvc : User (role=RESTAURANT_MANAGER)
+AuthSvc -> AuthSvc : verifyPassword()
+AuthSvc -> SessionRepo : save(UserSession)
+AuthSvc --> UI : LoginResponse(token, user, permissions)
+note right
+  Manager Permissions:
+  All Staff permissions PLUS:
+  - CREATE/UPDATE/DELETE_SECTION
+  - CREATE/UPDATE/DELETE_TABLE
+  - MANAGE_RESTAURANT_SETTINGS
+  - CREATE/UPDATE/DELETE_USER
+  - ASSIGN_ROLES
+  - VIEW_ALL_RESERVATIONS
+end note
+UI --> Manager : Dashboard with Manager menu
+
+== View Restaurant Layout ==
+
+Manager -> UI : Navigate to "Restaurant Layout"
+UI -> LayoutSvc : getRestaurantLayout(restaurantId)
+LayoutSvc -> ValidationSvc : validateRestaurantExists(restaurantId)
+LayoutSvc -> SectRepo : findByRestaurantId(restaurantId)
+SectRepo --> LayoutSvc : List<Section>
+loop For each section
+    LayoutSvc -> TableRepo : findBySectionId(sectionId)
+    TableRepo --> LayoutSvc : List<Table>
+end
+LayoutSvc --> UI : RestaurantLayoutDTO
+UI --> Manager : Display visual layout
+
+== Create New Section ==
+
+Manager -> UI : Click "Add Section"
+Manager -> UI : Enter section details
+UI -> LayoutSvc : createSection(CreateSectionRequest)
+LayoutSvc -> ValidationSvc : validateRestaurantExists(restaurantId)
+LayoutSvc -> SectRepo : save(Section)
+SectRepo --> LayoutSvc : Section (with ID)
+LayoutSvc --> UI : Section
+UI --> Manager : Display new section
+
+== Update Section ==
+
+Manager -> UI : Select section to edit
+Manager -> UI : Modify details
+UI -> LayoutSvc : updateSection(sectionId, UpdateSectionRequest)
+LayoutSvc -> ValidationSvc : validateSectionExists(sectionId)
+LayoutSvc -> SectRepo : findById(sectionId)
+LayoutSvc -> SectRepo : update(section)
+LayoutSvc --> UI : Section
+UI --> Manager : Display updated section
+
+== Delete Section ==
+
+Manager -> UI : Select section to delete
+UI -> LayoutSvc : deleteSection(sectionId, cascade=false)
+LayoutSvc -> ValidationSvc : canDeleteSection(sectionId)
+ValidationSvc -> TableRepo : findBySectionId(sectionId)
+TableRepo --> ValidationSvc : List<Table>
+
+alt Section has tables and cascade=false
+    LayoutSvc --> UI : LayoutValidationException
+    UI --> Manager : "Section has N tables. Delete all?"
+    Manager -> UI : Confirm cascade
+    UI -> LayoutSvc : deleteSection(sectionId, cascade=true)
+    LayoutSvc -> TableRepo : deleteBySectionId(sectionId)
+    LayoutSvc -> SectRepo : deleteById(sectionId)
+    LayoutSvc --> UI : tables deleted count
+    UI --> Manager : Section and tables deleted
+else Section empty
+    LayoutSvc -> SectRepo : deleteById(sectionId)
+    LayoutSvc --> UI : 0
+    UI --> Manager : Section deleted
+end
+
+== Create New Table ==
+
+Manager -> UI : Select section, click "Add Table"
+Manager -> UI : Enter table details (number, capacity)
+UI -> LayoutSvc : createTable(CreateTableRequest)
+LayoutSvc -> ValidationSvc : validateSectionExists(sectionId)
+LayoutSvc -> ValidationSvc : validateTableCapacity(capacity)
+
+alt Capacity invalid
+    LayoutSvc --> UI : LayoutValidationException
+    UI --> Manager : Display capacity error
+end
+
+LayoutSvc -> ValidationSvc : validateTableNumberUnique(sectionId, tableNumber)
+ValidationSvc -> TableRepo : findBySectionId(sectionId)
+
+alt Table number exists
+    LayoutSvc --> UI : LayoutValidationException
+    UI --> Manager : "Table number already exists"
+else Unique
+    LayoutSvc -> TableRepo : save(Table)
+    LayoutSvc --> UI : Table
+    UI --> Manager : Display new table
+end
+
+== Update Table ==
+
+Manager -> UI : Select table to edit
+Manager -> UI : Modify details
+UI -> LayoutSvc : updateTable(tableId, UpdateTableRequest)
+LayoutSvc -> ValidationSvc : validateTableExists(tableId)
+LayoutSvc -> TableRepo : findById(tableId)
+
+alt Table number changed
+    LayoutSvc -> ValidationSvc : validateTableNumberUnique()
+end
+
+alt Capacity changed
+    LayoutSvc -> ValidationSvc : validateTableCapacity()
+end
+
+LayoutSvc -> TableRepo : update(table)
+LayoutSvc --> UI : Table
+UI --> Manager : Display updated table
+
+== Activate/Deactivate Table ==
+
+alt Deactivate
+    Manager -> UI : Click "Deactivate"
+    UI -> LayoutSvc : deactivateTable(tableId)
+    LayoutSvc -> TableRepo : deactivateTable(tableId)
+    LayoutSvc --> UI : Table (isActive=false)
+    UI --> Manager : Table greyed out
+else Activate
+    Manager -> UI : Click "Activate"
+    UI -> LayoutSvc : activateTable(tableId)
+    LayoutSvc -> TableRepo : activateTable(tableId)
+    LayoutSvc --> UI : Table (isActive=true)
+    UI --> Manager : Table active
+end
+
+== Delete Table ==
+
+Manager -> UI : Select table, click "Delete"
+UI -> UI : Confirm dialog
+Manager -> UI : Confirm
+UI -> LayoutSvc : deleteTable(tableId)
+LayoutSvc -> ValidationSvc : validateTableExists(tableId)
+LayoutSvc -> TableRepo : deleteById(tableId)
+LayoutSvc --> UI : true
+UI --> Manager : Table removed
+
+== Validate Restaurant Layout ==
+
+Manager -> UI : Click "Validate Layout"
+UI -> LayoutSvc : validateLayout(restaurantId)
+LayoutSvc -> ValidationSvc : validateCompleteLayout(restaurantId)
+ValidationSvc -> RestRepo : findById(restaurantId)
+ValidationSvc -> SectRepo : findByRestaurantId(restaurantId)
+
+loop For each section
+    ValidationSvc -> TableRepo : findBySectionId(sectionId)
+    note right
+      Checks:
+      - Section has tables
+      - Valid capacity
+      - Active tables exist
+      - No duplicate numbers
+    end note
+end
+
+ValidationSvc --> LayoutSvc : List<String> issues
+LayoutSvc --> UI : List<String>
+
+alt Issues found
+    UI --> Manager : Display validation issues
+else No issues
+    UI --> Manager : "Layout is valid" ✓
+end
+
+== Create Staff User Account ==
+
+Manager -> UI : Navigate to "Manage Users"
+Manager -> UI : Click "Add User"
+Manager -> UI : Enter user details
+UI -> UserSvc : createUser(UserCreateRequest)
+
+UserSvc -> UserSvc : validateCreateRequest()
+UserSvc -> UserRepo : existsByUsername(username)
+
+alt Username exists
+    UserSvc --> UI : DuplicateUserException
+    UI --> Manager : "Username taken"
+end
+
+UserSvc -> UserRepo : existsByEmail(email)
+
+alt Email exists
+    UserSvc --> UI : DuplicateUserException
+    UI --> Manager : "Email registered"
+end
+
+UserSvc -> UserSvc : hashPassword(password)
+UserSvc -> UserRepo : save(User)
+UserSvc --> UI : User
+UI --> Manager : Display new user
+
+== Update User Account ==
+
+Manager -> UI : Select user to edit
+Manager -> UI : Modify details
+UI -> UserSvc : updateUser(userId, UserUpdateRequest)
+UserSvc -> UserRepo : findById(userId)
+
+alt Email changed
+    UserSvc -> UserRepo : findByEmail(newEmail)
+    alt Email belongs to other user
+        UserSvc --> UI : DuplicateUserException
+        UI --> Manager : Duplicate email error
+    end
+end
+
+UserSvc -> UserRepo : update(user)
+UserSvc --> UI : User
+UI --> Manager : Display updated profile
+
+== Deactivate/Activate User ==
+
+alt Deactivate
+    Manager -> UI : Click "Deactivate"
+    UI -> UserSvc : deactivateUser(userId)
+    UserSvc -> UserRepo : findById(userId)
+    UserSvc -> UserRepo : update(user)
+    UserSvc --> UI : void
+    UI --> Manager : User inactive
+else Activate
+    Manager -> UI : Click "Activate"
+    UI -> UserSvc : activateUser(userId)
+    UserSvc -> UserRepo : findById(userId)
+    UserSvc -> UserRepo : update(user)
+    UserSvc --> UI : void
+    UI --> Manager : User active
+end
+
+== Reset User Password ==
+
+Manager -> UI : Select user, "Reset Password"
+Manager -> UI : Enter new password
+UI -> UserSvc : resetPassword(userId, newPassword)
+UserSvc -> UserSvc : validatePassword(newPassword)
+
+alt Password invalid
+    UserSvc --> UI : UserServiceException
+    UI --> Manager : Display requirements
+else Valid
+    UserSvc -> UserRepo : findById(userId)
+    UserSvc -> UserSvc : hashPassword()
+    UserSvc -> UserRepo : update(user)
+    UserSvc --> UI : void
+    UI --> Manager : "Password reset successful"
+end
+
+== View All Reservations ==
+
+Manager -> UI : Navigate to Dashboard
+UI -> ResSvc : getReservationsByRestaurant(restaurantId, date)
+ResSvc -> ResRepo : findByDate(restaurantId, date)
+ResSvc -> CustRepo : findById() [enrich]
+ResSvc -> TableRepo : findById() [enrich]
+ResSvc --> UI : List<ReservationResponse>
+UI --> Manager : Display all reservations
+
+== View Operational Metrics ==
+
+Manager -> UI : Navigate to Reports
+UI -> TableSvc : getAvailableCapacity(restaurantId, now)
+TableSvc -> SectRepo : findByRestaurantId()
+TableSvc -> TableRepo : findActiveTablesBySectionId()
+TableSvc -> ResRepo : hasConflictingReservation()
+TableSvc --> UI : available capacity
+
+UI -> ResSvc : getActiveReservations(restaurantId)
+ResSvc -> ResRepo : findActiveReservations()
+ResSvc --> UI : List<ReservationResponse>
+
+UI --> Manager : Display metrics dashboard
+
+== Delete Customer (Manager only) ==
+
+Manager -> UI : Search customer
+Manager -> UI : Select, click "Delete"
+UI -> UI : Confirm dialog
+Manager -> UI : Confirm
+UI -> CustSvc : deleteCustomer(customerId)
+CustSvc -> CustRepo : deleteById(customerId)
+
+alt Not found
+    CustSvc --> UI : CustomerException
+    UI --> Manager : "Customer not found"
+else Success
+    CustSvc --> UI : void
+    UI --> Manager : Customer removed
+end
+
+@enduml
+

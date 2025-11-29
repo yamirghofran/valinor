@@ -1,0 +1,51 @@
+sequenceDiagram
+    title Customer - Authentication Flow
+
+    actor Customer
+    participant UI as JavaFX UI
+    participant AuthSvc as AuthenticationService
+    participant UserRepo as UserRepository
+    participant SessionRepo as UserSessionRepository
+
+    %% ============================================
+    %% LOGIN FLOW
+    %% ============================================
+    rect rgb(230, 245, 255)
+        Note over Customer,SessionRepo: Login Flow
+        Customer->>UI: Enter username & password
+        UI->>AuthSvc: login(LoginRequest)
+        AuthSvc->>UserRepo: findByUsername(username)
+        UserRepo-->>AuthSvc: Optional<User>
+        
+        alt User not found or inactive
+            AuthSvc-->>UI: AuthenticationException
+            UI-->>Customer: Display error message
+        else User found and active
+            AuthSvc->>AuthSvc: verifyPassword(password, hash)
+            alt Password invalid
+                AuthSvc-->>UI: AuthenticationException
+                UI-->>Customer: Display "Invalid credentials"
+            else Password valid
+                AuthSvc->>AuthSvc: generateSessionToken()
+                AuthSvc->>SessionRepo: save(UserSession)
+                SessionRepo-->>AuthSvc: UserSession (with ID)
+                AuthSvc->>UserRepo: update(user.lastLogin)
+                AuthSvc-->>UI: LoginResponse(token, user, permissions)
+                UI-->>Customer: Navigate to Dashboard
+            end
+        end
+    end
+
+    %% ============================================
+    %% LOGOUT FLOW
+    %% ============================================
+    rect rgb(240, 240, 240)
+        Note over Customer,SessionRepo: Logout Flow
+        Customer->>UI: Click Logout
+        UI->>AuthSvc: logout(sessionToken)
+        AuthSvc->>SessionRepo: expireSession(token)
+        SessionRepo-->>AuthSvc: boolean (success)
+        AuthSvc-->>UI: void
+        UI-->>Customer: Navigate to Login screen
+    end
+

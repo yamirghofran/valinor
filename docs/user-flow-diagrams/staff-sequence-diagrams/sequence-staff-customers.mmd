@@ -1,0 +1,98 @@
+sequenceDiagram
+    title Front-of-House Staff - Customer Management Flows
+
+    actor Staff as Front-of-House Staff
+    participant UI as JavaFX UI
+    participant CustSvc as CustomerService
+    participant ResSvc as ReservationService
+    participant CustRepo as CustomerRepository
+    participant ResRepo as ReservationRepository
+    participant TableRepo as TableRepository
+
+    %% ============================================
+    %% CREATE NEW CUSTOMER
+    %% ============================================
+    rect rgb(255, 245, 230)
+        Note over Staff,CustRepo: Create Customer Flow
+        Staff->>UI: Click "New Customer"
+        Staff->>UI: Enter customer details (name, email, phone, allergies, notes)
+        UI->>CustSvc: createCustomer(CreateCustomerRequest)
+        
+        CustSvc->>CustSvc: validateCreateRequest()
+        CustSvc->>CustSvc: validateEmail(email)
+        CustSvc->>CustRepo: existsByEmail(email)
+        CustRepo-->>CustSvc: boolean
+        
+        alt Email already exists
+            CustSvc-->>UI: CustomerException("Email already exists")
+            UI-->>Staff: Display error, prompt for different email
+        else Email unique
+            CustSvc->>CustRepo: save(Customer)
+            CustRepo-->>CustSvc: Customer (with customerId)
+            CustSvc-->>UI: Customer
+            UI-->>Staff: Display success, show customer profile
+        end
+    end
+
+    %% ============================================
+    %% SEARCH AND VIEW CUSTOMERS
+    %% ============================================
+    rect rgb(230, 255, 245)
+        Note over Staff,CustRepo: Search Customers Flow
+        Staff->>UI: Enter search term (name/email)
+        UI->>CustSvc: searchCustomers(searchTerm)
+        CustSvc->>CustRepo: searchByName(searchTerm)
+        CustRepo-->>CustSvc: List<Customer>
+        CustSvc-->>UI: List<CustomerResponse>
+        UI-->>Staff: Display matching customers
+        
+        Staff->>UI: Select customer to view details
+        UI->>CustSvc: getCustomerById(customerId)
+        CustSvc->>CustRepo: findById(customerId)
+        CustRepo-->>CustSvc: Customer
+        CustSvc-->>UI: CustomerResponse
+        UI-->>Staff: Display full customer profile with allergies/notes
+    end
+
+    %% ============================================
+    %% VIEW CUSTOMER RESERVATION HISTORY
+    %% ============================================
+    rect rgb(245, 255, 230)
+        Note over Staff,ResRepo: View Customer History Flow
+        Staff->>UI: Click "View History" on customer
+        UI->>ResSvc: getReservationsByCustomer(customerId)
+        ResSvc->>ResRepo: findByCustomerId(customerId)
+        ResRepo-->>ResSvc: List<Reservation>
+        ResSvc->>TableRepo: findById() [for each reservation]
+        TableRepo-->>ResSvc: Table details
+        ResSvc->>ResSvc: toResponses(reservations)
+        ResSvc-->>UI: List<ReservationResponse>
+        UI-->>Staff: Display reservation history with dates, tables, status
+    end
+
+    %% ============================================
+    %% UPDATE CUSTOMER PROFILE
+    %% ============================================
+    rect rgb(255, 250, 230)
+        Note over Staff,CustRepo: Update Customer Flow
+        Staff->>UI: Edit customer details
+        UI->>CustSvc: updateCustomer(customerId, UpdateCustomerRequest)
+        CustSvc->>CustRepo: findById(customerId)
+        CustRepo-->>CustSvc: Customer
+        
+        alt Email changed
+            CustSvc->>CustRepo: findByEmail(newEmail)
+            CustRepo-->>CustSvc: Optional<Customer>
+            alt Email belongs to different customer
+                CustSvc-->>UI: CustomerException
+                UI-->>Staff: Display duplicate email error
+            end
+        end
+        
+        CustSvc->>CustSvc: Apply updates (name, phone, allergies, notes)
+        CustSvc->>CustRepo: update(customer)
+        CustRepo-->>CustSvc: Customer
+        CustSvc-->>UI: Customer
+        UI-->>Staff: Display updated profile
+    end
+

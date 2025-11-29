@@ -1,0 +1,222 @@
+@startuml Front-of-House Staff Sequence Diagram
+!theme plain
+title Front-of-House Staff Sequence Diagram - Restaurant Reservation System
+
+actor "Front-of-House Staff" as Staff
+participant "JavaFX UI" as UI
+participant "AuthenticationService" as AuthSvc
+participant "ReservationService" as ResSvc
+participant "CustomerService" as CustSvc
+participant "TableAvailabilityService" as TableSvc
+participant "UserRepository" as UserRepo
+participant "ReservationRepository" as ResRepo
+participant "CustomerRepository" as CustRepo
+participant "TableRepository" as TableRepo
+participant "UserSessionRepository" as SessionRepo
+
+== Staff Authentication ==
+
+Staff -> UI : Enter credentials
+UI -> AuthSvc : login(LoginRequest)
+AuthSvc -> UserRepo : findByUsername(username)
+UserRepo --> AuthSvc : User (role=FRONT_OF_HOUSE_STAFF)
+AuthSvc -> AuthSvc : verifyPassword()
+AuthSvc -> SessionRepo : save(UserSession)
+AuthSvc --> UI : LoginResponse(token, user, permissions)
+note right
+  Staff Permissions:
+  - VIEW/CREATE/UPDATE/CANCEL_RESERVATION
+  - VIEW/CREATE/UPDATE_CUSTOMER
+  - VIEW_CUSTOMER_HISTORY
+  - VIEW_TABLES, ASSIGN_TABLE
+  - UPDATE_RESERVATION_STATUS
+end note
+UI --> Staff : Dashboard with Staff menu
+
+== Create New Customer ==
+
+Staff -> UI : Click "New Customer"
+Staff -> UI : Enter details (name, email, phone, allergies)
+UI -> CustSvc : createCustomer(CreateCustomerRequest)
+
+CustSvc -> CustSvc : validateCreateRequest()
+CustSvc -> CustRepo : existsByEmail(email)
+CustRepo --> CustSvc : boolean
+
+alt Email already exists
+    CustSvc --> UI : CustomerException
+    UI --> Staff : Display error
+else Email unique
+    CustSvc -> CustRepo : save(Customer)
+    CustRepo --> CustSvc : Customer (with ID)
+    CustSvc --> UI : Customer
+    UI --> Staff : Display success
+end
+
+== Search and View Customers ==
+
+Staff -> UI : Enter search term
+UI -> CustSvc : searchCustomers(searchTerm)
+CustSvc -> CustRepo : searchByName(searchTerm)
+CustRepo --> CustSvc : List<Customer>
+CustSvc --> UI : List<CustomerResponse>
+UI --> Staff : Display matching customers
+
+Staff -> UI : Select customer
+UI -> CustSvc : getCustomerById(customerId)
+CustSvc -> CustRepo : findById(customerId)
+CustRepo --> CustSvc : Customer
+CustSvc --> UI : CustomerResponse
+UI --> Staff : Display full profile with allergies/notes
+
+== View Customer Reservation History ==
+
+Staff -> UI : Click "View History"
+UI -> ResSvc : getReservationsByCustomer(customerId)
+ResSvc -> ResRepo : findByCustomerId(customerId)
+ResRepo --> ResSvc : List<Reservation>
+ResSvc -> TableRepo : findById() [enrich]
+ResSvc --> UI : List<ReservationResponse>
+UI --> Staff : Display reservation history
+
+== Check Table Availability ==
+
+Staff -> UI : Select date, time, party size
+UI -> TableSvc : getAvailableTables(restaurantId, dateTime, partySize)
+
+loop For each section
+    TableSvc -> TableRepo : findActiveTablesBySectionId(sectionId)
+    TableRepo --> TableSvc : List<Table>
+    loop For each table with sufficient capacity
+        TableSvc -> ResRepo : hasConflictingReservation(tableId, dateTime, 120min)
+        ResRepo --> TableSvc : boolean
+    end
+end
+
+TableSvc --> UI : List<Table> (available)
+UI --> Staff : Display available tables by section
+
+== Create Reservation for Customer ==
+
+Staff -> UI : Select customer
+Staff -> UI : Enter reservation details
+Staff -> UI : Select table or auto-assign
+UI -> ResSvc : createReservation(CreateReservationRequest)
+
+ResSvc -> CustRepo : findById(customerId)
+CustRepo --> ResSvc : Customer
+
+alt Manual table selection
+    ResSvc -> TableRepo : findById(tableId)
+    TableRepo --> ResSvc : Table
+    ResSvc -> ResSvc : validate capacity
+    ResSvc -> ResRepo : hasConflictingReservation()
+    ResRepo --> ResSvc : boolean
+    alt Conflict detected
+        ResSvc --> UI : ReservationConflictException
+        UI -> TableSvc : suggestAlternativeTables()
+        TableSvc --> UI : List<Table> alternatives
+        UI --> Staff : Show conflict & alternatives
+    end
+else Auto-assign
+    ResSvc -> TableSvc : getOptimalTable()
+    TableSvc --> ResSvc : Optional<Table>
+    alt No table available
+        ResSvc --> UI : ReservationException
+        UI --> Staff : No availability
+    end
+end
+
+ResSvc -> ResRepo : save(Reservation)
+ResRepo --> ResSvc : Reservation (CONFIRMED)
+ResSvc --> UI : Reservation
+UI --> Staff : Display confirmation
+
+== Modify Existing Reservation ==
+
+Staff -> UI : Search/select reservation
+UI -> ResSvc : getReservationById(reservationId)
+ResSvc -> ResRepo : findById(reservationId)
+ResSvc --> UI : ReservationResponse
+UI --> Staff : Display current details
+
+Staff -> UI : Modify fields
+UI -> ResSvc : updateReservation(reservationId, UpdateReservationRequest)
+
+alt Table or time changed
+    ResSvc -> ResRepo : hasConflictingReservation(excludeId)
+    ResRepo --> ResSvc : boolean
+end
+
+ResSvc -> ResRepo : update(reservation)
+ResRepo --> ResSvc : Reservation
+ResSvc --> UI : Reservation
+UI --> Staff : Display updated confirmation
+
+== Cancel Reservation ==
+
+Staff -> UI : Select reservation to cancel
+UI -> ResSvc : cancelReservation(reservationId)
+ResSvc -> ResRepo : findById(reservationId)
+ResRepo --> ResSvc : Reservation
+ResSvc -> ResSvc : setStatus(CANCELLED)
+ResSvc -> ResRepo : update(reservation)
+ResSvc --> UI : Reservation
+UI --> Staff : Display cancellation confirmation
+
+== Update Reservation Status ==
+
+Staff -> UI : View today's reservations
+UI -> ResSvc : getReservationsByRestaurant(restaurantId, today)
+ResSvc -> ResRepo : findByDate(restaurantId, date)
+ResSvc --> UI : List<ReservationResponse>
+UI --> Staff : Display today's reservations
+
+alt Mark as Completed
+    Staff -> UI : Click "Complete"
+    UI -> ResSvc : markAsCompleted(reservationId)
+    ResSvc -> ResSvc : setStatus(COMPLETED)
+    ResSvc -> ResRepo : update(reservation)
+    ResSvc --> UI : Reservation
+    UI --> Staff : Status = COMPLETED
+else Mark as No-Show
+    Staff -> UI : Click "No-Show"
+    UI -> ResSvc : markAsNoShow(reservationId)
+    ResSvc -> ResSvc : setStatus(NO_SHOW)
+    ResSvc -> ResRepo : update(reservation)
+    ResSvc --> UI : Reservation
+    UI --> Staff : Status = NO_SHOW
+end
+
+== Update Customer Profile ==
+
+Staff -> UI : Edit customer details
+UI -> CustSvc : updateCustomer(customerId, UpdateCustomerRequest)
+CustSvc -> CustRepo : findById(customerId)
+CustRepo --> CustSvc : Customer
+
+alt Email changed
+    CustSvc -> CustRepo : findByEmail(newEmail)
+    alt Email belongs to different customer
+        CustSvc --> UI : CustomerException
+        UI --> Staff : Duplicate email error
+    end
+end
+
+CustSvc -> CustRepo : update(customer)
+CustSvc --> UI : Customer
+UI --> Staff : Display updated profile
+
+== View Active Reservations ==
+
+Staff -> UI : Navigate to Active Reservations
+UI -> ResSvc : getActiveReservations(restaurantId)
+ResSvc -> ResRepo : findActiveReservations(restaurantId, now)
+ResRepo --> ResSvc : List<Reservation>
+ResSvc -> CustRepo : findById() [enrich names]
+ResSvc -> TableRepo : findById() [enrich tables]
+ResSvc --> UI : List<ReservationResponse>
+UI --> Staff : Display active reservations
+
+@enduml
+

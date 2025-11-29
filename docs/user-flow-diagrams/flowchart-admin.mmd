@@ -1,0 +1,75 @@
+---
+title: System Admin User Flow (Reorganized)
+---
+
+flowchart LR
+    Admin(("System Admin"))
+
+    subgraph Auth["Authentication"]
+        direction TB
+        Login["Log In"]
+    end
+
+    subgraph Restaurants["Restaurant Management"]
+        direction TB
+        ViewRestaurants["View All Restaurants"]
+        CreateRestaurant["Create Restaurant"]
+        EditRestaurant["Edit Restaurant"]
+        DeleteRestaurant["Delete Restaurant"]
+        ManageLayout["Manage Any Layout"]
+    end
+
+    subgraph Users["Cross-System User Management"]
+        direction TB
+        ViewAllUsers["View All Users"]
+        CreateAnyUser["Create Any User Type"]
+        EditAnyUser["Edit Any User"]
+        DeleteUser["Delete User"]
+        TransferUser["Transfer to Restaurant"]
+        ForceReset["Force Password Reset"]
+        AssignAnyRole["Assign Any Role"]
+    end
+
+    subgraph Sessions["Session Management"]
+        direction TB
+        ViewSessions["View Active Sessions"]
+        TerminateSession["Terminate Session"]
+        ForceLogout["Force Logout User"]
+        CleanupSessions["Cleanup Expired"]
+    end
+
+    subgraph SystemOps["System Operations"]
+        direction TB
+        ViewAllData["View All Data"]
+        SystemHealth["System Health Check"]
+        AuditUser["Audit User Activity"]
+    end
+
+    Logout["Log Out"]
+
+    %% Admin can access every functional branch
+    Admin --> Login
+    Admin --> ViewRestaurants
+    Admin --> ViewAllUsers
+    Admin --> ViewSessions
+    Admin --> ViewAllData
+    Admin --> SystemHealth
+    Admin --> AuditUser
+    Admin --> Logout
+
+    %% Internal flows within each subgraph to indicate deeper actions
+    ViewRestaurants --> CreateRestaurant
+    ViewRestaurants --> EditRestaurant
+    ViewRestaurants --> DeleteRestaurant
+    ViewRestaurants --> ManageLayout
+
+    ViewAllUsers --> CreateAnyUser
+    ViewAllUsers --> EditAnyUser
+    ViewAllUsers --> DeleteUser
+    ViewAllUsers --> TransferUser
+    ViewAllUsers --> ForceReset
+    EditAnyUser --> AssignAnyRole
+
+    ViewSessions --> TerminateSession
+    ViewSessions --> ForceLogout
+    ViewSessions --> CleanupSessions

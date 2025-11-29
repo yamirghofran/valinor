@@ -1,0 +1,237 @@
+sequenceDiagram
+    title Restaurant Manager - Layout Management Flows
+
+    actor Manager as Restaurant Manager
+    participant UI as JavaFX UI
+    participant LayoutSvc as RestaurantLayoutService
+    participant ValidationSvc as LayoutValidationService
+    participant RestRepo as RestaurantRepository
+    participant SectRepo as SectionRepository
+    participant TableRepo as TableRepository
+
+    %% ============================================
+    %% VIEW RESTAURANT LAYOUT
+    %% ============================================
+    rect rgb(245, 255, 245)
+        Note over Manager,TableRepo: View Layout Flow
+        Manager->>UI: Navigate to "Restaurant Layout"
+        UI->>LayoutSvc: getRestaurantLayout(restaurantId)
+        LayoutSvc->>ValidationSvc: validateRestaurantExists(restaurantId)
+        ValidationSvc->>RestRepo: findById(restaurantId)
+        RestRepo-->>ValidationSvc: Restaurant
+        LayoutSvc->>SectRepo: findByRestaurantId(restaurantId)
+        SectRepo-->>LayoutSvc: List<Section>
+        loop For each section
+            LayoutSvc->>TableRepo: findBySectionId(sectionId)
+            TableRepo-->>LayoutSvc: List<Table>
+        end
+        LayoutSvc-->>UI: RestaurantLayoutDTO
+        UI-->>Manager: Display visual layout with sections and tables
+    end
+
+    %% ============================================
+    %% CREATE SECTION
+    %% ============================================
+    rect rgb(255, 250, 230)
+        Note over Manager,SectRepo: Create Section Flow
+        Manager->>UI: Click "Add Section"
+        Manager->>UI: Enter section details (name, expected tables, notes)
+        UI->>LayoutSvc: createSection(CreateSectionRequest)
+        LayoutSvc->>ValidationSvc: validateRestaurantExists(restaurantId)
+        ValidationSvc->>RestRepo: findById(restaurantId)
+        RestRepo-->>ValidationSvc: Restaurant (exists)
+        LayoutSvc->>SectRepo: save(Section)
+        SectRepo-->>LayoutSvc: Section (with sectionId)
+        LayoutSvc-->>UI: Section
+        UI-->>Manager: Display new section in layout
+    end
+
+    %% ============================================
+    %% UPDATE SECTION
+    %% ============================================
+    rect rgb(250, 245, 255)
+        Note over Manager,SectRepo: Update Section Flow
+        Manager->>UI: Select section to edit
+        Manager->>UI: Modify section details (name, notes)
+        UI->>LayoutSvc: updateSection(sectionId, UpdateSectionRequest)
+        LayoutSvc->>ValidationSvc: validateSectionExists(sectionId)
+        ValidationSvc->>SectRepo: findById(sectionId)
+        SectRepo-->>ValidationSvc: Section (exists)
+        LayoutSvc->>SectRepo: findById(sectionId)
+        SectRepo-->>LayoutSvc: Section
+        LayoutSvc->>LayoutSvc: Apply updates
+        LayoutSvc->>SectRepo: update(section)
+        SectRepo-->>LayoutSvc: Section (updated)
+        LayoutSvc-->>UI: Section
+        UI-->>Manager: Display updated section
+    end
+
+    %% ============================================
+    %% DELETE SECTION
+    %% ============================================
+    rect rgb(255, 235, 235)
+        Note over Manager,TableRepo: Delete Section Flow
+        Manager->>UI: Select section to delete
+        UI->>LayoutSvc: deleteSection(sectionId, cascade=false)
+        LayoutSvc->>ValidationSvc: validateSectionExists(sectionId)
+        LayoutSvc->>ValidationSvc: canDeleteSection(sectionId)
+        ValidationSvc->>TableRepo: findBySectionId(sectionId)
+        TableRepo-->>ValidationSvc: List<Table>
+        
+        alt Section has tables and cascade=false
+            ValidationSvc-->>LayoutSvc: false (has N tables)
+            LayoutSvc-->>UI: LayoutValidationException
+            UI-->>Manager: Prompt: "Section has N tables. Delete all?"
+            Manager->>UI: Confirm cascade delete
+            UI->>LayoutSvc: deleteSection(sectionId, cascade=true)
+            LayoutSvc->>TableRepo: deleteBySectionId(sectionId)
+            TableRepo-->>LayoutSvc: int (tables deleted)
+            LayoutSvc->>SectRepo: deleteById(sectionId)
+            SectRepo-->>LayoutSvc: boolean (success)
+            LayoutSvc-->>UI: int (tables deleted)
+            UI-->>Manager: Section and N tables deleted
+        else Section empty or cascade=true
+            LayoutSvc->>SectRepo: deleteById(sectionId)
+            SectRepo-->>LayoutSvc: boolean (success)
+            LayoutSvc-->>UI: 0
+            UI-->>Manager: Section deleted
+        end
+    end
+
+    %% ============================================
+    %% CREATE TABLE
+    %% ============================================
+    rect rgb(230, 255, 240)
+        Note over Manager,TableRepo: Create Table Flow
+        Manager->>UI: Select section, click "Add Table"
+        Manager->>UI: Enter table details (number, capacity, active status)
+        UI->>LayoutSvc: createTable(CreateTableRequest)
+        LayoutSvc->>ValidationSvc: validateSectionExists(sectionId)
+        LayoutSvc->>ValidationSvc: validateTableCapacity(capacity)
+        
+        alt Capacity invalid (<=0 or >20)
+            ValidationSvc-->>LayoutSvc: LayoutValidationException
+            LayoutSvc-->>UI: Error
+            UI-->>Manager: Display capacity error
+        end
+        
+        LayoutSvc->>ValidationSvc: validateTableNumberUnique(sectionId, tableNumber, null)
+        ValidationSvc->>TableRepo: findBySectionId(sectionId)
+        TableRepo-->>ValidationSvc: List<Table>
+        
+        alt Table number already exists in section
+            ValidationSvc-->>LayoutSvc: LayoutValidationException
+            LayoutSvc-->>UI: Error
+            UI-->>Manager: Display "Table number already exists"
+        else Table number unique
+            LayoutSvc->>TableRepo: save(Table)
+            TableRepo-->>LayoutSvc: Table (with tableId)
+            LayoutSvc-->>UI: Table
+            UI-->>Manager: Display new table in section
+        end
+    end
+
+    %% ============================================
+    %% UPDATE TABLE
+    %% ============================================
+    rect rgb(245, 250, 255)
+        Note over Manager,TableRepo: Update Table Flow
+        Manager->>UI: Select table to edit
+        Manager->>UI: Modify table details (number, capacity, active)
+        UI->>LayoutSvc: updateTable(tableId, UpdateTableRequest)
+        LayoutSvc->>ValidationSvc: validateTableExists(tableId)
+        LayoutSvc->>TableRepo: findById(tableId)
+        TableRepo-->>LayoutSvc: Table
+        
+        alt Table number changed
+            LayoutSvc->>ValidationSvc: validateTableNumberUnique(sectionId, newNumber, tableId)
+            ValidationSvc->>TableRepo: findBySectionId(sectionId)
+            alt Duplicate found
+                ValidationSvc-->>LayoutSvc: LayoutValidationException
+                LayoutSvc-->>UI: Error
+                UI-->>Manager: Display duplicate error
+            end
+        end
+        
+        alt Capacity changed
+            LayoutSvc->>ValidationSvc: validateTableCapacity(newCapacity)
+        end
+        
+        LayoutSvc->>LayoutSvc: Apply updates
+        LayoutSvc->>TableRepo: update(table)
+        TableRepo-->>LayoutSvc: Table
+        LayoutSvc-->>UI: Table
+        UI-->>Manager: Display updated table
+    end
+
+    %% ============================================
+    %% ACTIVATE/DEACTIVATE TABLE
+    %% ============================================
+    rect rgb(255, 248, 240)
+        Note over Manager,TableRepo: Toggle Table Status Flow
+        alt Deactivate table
+            Manager->>UI: Click "Deactivate" on table
+            UI->>LayoutSvc: deactivateTable(tableId)
+            LayoutSvc->>ValidationSvc: validateTableExists(tableId)
+            LayoutSvc->>TableRepo: deactivateTable(tableId)
+            TableRepo-->>LayoutSvc: Table (isActive=false)
+            LayoutSvc-->>UI: Table
+            UI-->>Manager: Table shown as inactive (greyed out)
+        else Activate table
+            Manager->>UI: Click "Activate" on table
+            UI->>LayoutSvc: activateTable(tableId)
+            LayoutSvc->>ValidationSvc: validateTableExists(tableId)
+            LayoutSvc->>TableRepo: activateTable(tableId)
+            TableRepo-->>LayoutSvc: Table (isActive=true)
+            LayoutSvc-->>UI: Table
+            UI-->>Manager: Table shown as active
+        end
+    end
+
+    %% ============================================
+    %% DELETE TABLE
+    %% ============================================
+    rect rgb(255, 235, 235)
+        Note over Manager,TableRepo: Delete Table Flow
+        Manager->>UI: Select table, click "Delete"
+        UI->>UI: Confirm deletion dialog
+        Manager->>UI: Confirm
+        UI->>LayoutSvc: deleteTable(tableId)
+        LayoutSvc->>ValidationSvc: validateTableExists(tableId)
+        ValidationSvc->>TableRepo: findById(tableId)
+        TableRepo-->>ValidationSvc: Table (exists)
+        LayoutSvc->>TableRepo: deleteById(tableId)
+        TableRepo-->>LayoutSvc: boolean (success)
+        LayoutSvc-->>UI: true
+        UI-->>Manager: Table removed from layout
+    end
+
+    %% ============================================
+    %% VALIDATE LAYOUT
+    %% ============================================
+    rect rgb(240, 255, 250)
+        Note over Manager,TableRepo: Validate Layout Flow
+        Manager->>UI: Click "Validate Layout"
+        UI->>LayoutSvc: validateLayout(restaurantId)
+        LayoutSvc->>ValidationSvc: validateCompleteLayout(restaurantId)
+        ValidationSvc->>RestRepo: findById(restaurantId)
+        RestRepo-->>ValidationSvc: Restaurant
+        ValidationSvc->>SectRepo: findByRestaurantId(restaurantId)
+        SectRepo-->>ValidationSvc: List<Section>
+        
+        loop For each section
+            ValidationSvc->>TableRepo: findBySectionId(sectionId)
+            TableRepo-->>ValidationSvc: List<Table>
+            Note right of ValidationSvc: Check:<br/>- Section has tables<br/>- Tables have valid capacity<br/>- At least one active table<br/>- No duplicate table numbers
+        end
+        
+        ValidationSvc-->>LayoutSvc: List<String> (issues)
+        LayoutSvc-->>UI: List<String>
+        
+        alt Issues found
+            UI-->>Manager: Display list of validation issues
+        else No issues
+            UI-->>Manager: Display "Layout is valid" ✓
+        end
+    end
+

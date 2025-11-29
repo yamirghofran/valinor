@@ -1,0 +1,35 @@
+sequenceDiagram
+    title Customer - Profile Management Flow
+
+    actor Customer
+    participant UI as JavaFX UI
+    participant CustSvc as CustomerService
+    participant CustRepo as CustomerRepository
+
+    %% ============================================
+    %% UPDATE OWN PROFILE
+    %% ============================================
+    rect rgb(255, 255, 230)
+        Note over Customer,CustRepo: Update Profile Flow
+        Customer->>UI: Edit profile information
+        UI->>CustSvc: updateCustomer(customerId, UpdateCustomerRequest)
+        CustSvc->>CustRepo: findById(customerId)
+        CustRepo-->>CustSvc: Customer
+        
+        alt Email changed
+            CustSvc->>CustSvc: validateEmail(newEmail)
+            CustSvc->>CustRepo: findByEmail(newEmail)
+            CustRepo-->>CustSvc: Optional<Customer>
+            alt Email already exists
+                CustSvc-->>UI: CustomerException("Email exists")
+                UI-->>Customer: Display error
+            end
+        end
+        
+        CustSvc->>CustSvc: Apply updates (name, phone, allergies, notes)
+        CustSvc->>CustRepo: update(customer)
+        CustRepo-->>CustSvc: Customer (updated)
+        CustSvc-->>UI: Customer
+        UI-->>Customer: Display success message
+    end
+

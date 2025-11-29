@@ -1,0 +1,141 @@
+sequenceDiagram
+    title Restaurant Manager - User Management Flows
+
+    actor Manager as Restaurant Manager
+    participant UI as JavaFX UI
+    participant UserSvc as UserService
+    participant UserRepo as UserRepository
+
+    %% ============================================
+    %% CREATE STAFF USER ACCOUNT
+    %% ============================================
+    rect rgb(245, 240, 255)
+        Note over Manager,UserRepo: Create User Flow
+        Manager->>UI: Navigate to "Manage Users"
+        Manager->>UI: Click "Add User"
+        Manager->>UI: Enter user details (username, email, name, password, role)
+        UI->>UserSvc: createUser(UserCreateRequest)
+        
+        UserSvc->>UserSvc: validateCreateRequest()
+        UserSvc->>UserSvc: validateUsername(username)
+        UserSvc->>UserSvc: validateEmail(email)
+        UserSvc->>UserSvc: validatePassword(password)
+        
+        UserSvc->>UserRepo: existsByUsername(username)
+        UserRepo-->>UserSvc: boolean
+        alt Username exists
+            UserSvc-->>UI: DuplicateUserException
+            UI-->>Manager: Display "Username already taken"
+        end
+        
+        UserSvc->>UserRepo: existsByEmail(email)
+        UserRepo-->>UserSvc: boolean
+        alt Email exists
+            UserSvc-->>UI: DuplicateUserException
+            UI-->>Manager: Display "Email already registered"
+        end
+        
+        UserSvc->>UserSvc: hashPassword(password)
+        UserSvc->>UserRepo: save(User)
+        UserRepo-->>UserSvc: User (with userId)
+        UserSvc-->>UI: User
+        UI-->>Manager: Display new user in list
+    end
+
+    %% ============================================
+    %% UPDATE USER ACCOUNT
+    %% ============================================
+    rect rgb(250, 250, 240)
+        Note over Manager,UserRepo: Update User Flow
+        Manager->>UI: Select user to edit
+        Manager->>UI: Modify user details (email, name, role, active status)
+        UI->>UserSvc: updateUser(userId, UserUpdateRequest)
+        UserSvc->>UserRepo: findById(userId)
+        UserRepo-->>UserSvc: User
+        
+        alt Email changed
+            UserSvc->>UserSvc: validateEmail(newEmail)
+            UserSvc->>UserRepo: findByEmail(newEmail)
+            UserRepo-->>UserSvc: Optional<User>
+            alt Email belongs to different user
+                UserSvc-->>UI: DuplicateUserException
+                UI-->>Manager: Display duplicate email error
+            end
+        end
+        
+        alt Role changed
+            UserSvc->>UserSvc: Apply new role
+            Note right of UserSvc: Manager can assign:<br/>FRONT_OF_HOUSE_STAFF<br/>RESTAURANT_MANAGER
+        end
+        
+        UserSvc->>UserRepo: update(user)
+        UserRepo-->>UserSvc: User
+        UserSvc-->>UI: User
+        UI-->>Manager: Display updated user profile
+    end
+
+    %% ============================================
+    %% DEACTIVATE/ACTIVATE USER
+    %% ============================================
+    rect rgb(255, 245, 240)
+        Note over Manager,UserRepo: Toggle User Status Flow
+        alt Deactivate user
+            Manager->>UI: Click "Deactivate" on user
+            UI->>UserSvc: deactivateUser(userId)
+            UserSvc->>UserRepo: findById(userId)
+            UserRepo-->>UserSvc: User
+            UserSvc->>UserSvc: setIsActive(false)
+            UserSvc->>UserRepo: update(user)
+            UserRepo-->>UserSvc: void
+            UserSvc-->>UI: void
+            UI-->>Manager: User shown as inactive
+        else Activate user
+            Manager->>UI: Click "Activate" on user
+            UI->>UserSvc: activateUser(userId)
+            UserSvc->>UserRepo: findById(userId)
+            UserRepo-->>UserSvc: User
+            UserSvc->>UserSvc: setIsActive(true)
+            UserSvc->>UserRepo: update(user)
+            UserRepo-->>UserSvc: void
+            UserSvc-->>UI: void
+            UI-->>Manager: User shown as active
+        end
+    end
+
+    %% ============================================
+    %% RESET USER PASSWORD
+    %% ============================================
+    rect rgb(255, 240, 245)
+        Note over Manager,UserRepo: Reset Password Flow
+        Manager->>UI: Select user, click "Reset Password"
+        Manager->>UI: Enter new password
+        UI->>UserSvc: resetPassword(userId, newPassword)
+        UserSvc->>UserSvc: validatePassword(newPassword)
+        
+        alt Password doesn't meet requirements
+            UserSvc-->>UI: UserServiceException(requirements)
+            UI-->>Manager: Display password requirements
+        else Password valid
+            UserSvc->>UserRepo: findById(userId)
+            UserRepo-->>UserSvc: User
+            UserSvc->>UserSvc: hashPassword(newPassword)
+            UserSvc->>UserRepo: update(user)
+            UserRepo-->>UserSvc: void
+            UserSvc-->>UI: void
+            UI-->>Manager: Display "Password reset successful"
+        end
+    end
+
+    %% ============================================
+    %% VIEW ALL USERS
+    %% ============================================
+    rect rgb(240, 250, 255)
+        Note over Manager,UserRepo: View Users Flow
+        Manager->>UI: Navigate to "Manage Users"
+        UI->>UserSvc: getUsersByRestaurant(restaurantId)
+        UserSvc->>UserRepo: findByRestaurantId(restaurantId)
+        UserRepo-->>UserSvc: List<User>
+        UserSvc-->>UI: List<UserResponse>
+        UI-->>Manager: Display users list with roles and status
+    end
+

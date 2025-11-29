@@ -1,0 +1,323 @@
+@startuml System Admin Sequence Diagram
+!theme plain
+title System Admin Sequence Diagram - Restaurant Reservation System
+
+actor "System Admin" as Admin
+participant "JavaFX UI" as UI
+participant "AuthenticationService" as AuthSvc
+participant "UserService" as UserSvc
+participant "RestaurantLayoutService" as LayoutSvc
+participant "RestaurantService" as RestSvc
+participant "ReservationService" as ResSvc
+participant "CustomerService" as CustSvc
+participant "UserRepository" as UserRepo
+participant "RestaurantRepository" as RestRepo
+participant "SectionRepository" as SectRepo
+participant "TableRepository" as TableRepo
+participant "ReservationRepository" as ResRepo
+participant "CustomerRepository" as CustRepo
+participant "UserSessionRepository" as SessionRepo
+
+== System Admin Authentication ==
+
+Admin -> UI : Enter credentials
+UI -> AuthSvc : login(LoginRequest)
+AuthSvc -> UserRepo : findByUsername(username)
+UserRepo --> AuthSvc : User (role=SYSTEM_ADMIN)
+AuthSvc -> AuthSvc : verifyPassword()
+AuthSvc -> SessionRepo : save(UserSession)
+AuthSvc --> UI : LoginResponse(token, user, permissions)
+note right
+  SYSTEM_ADMIN has ALL permissions:
+  EnumSet.allOf(Permission.class)
+  Full access across ALL restaurants
+end note
+UI --> Admin : Dashboard with System Admin controls
+
+== Manage All Restaurants ==
+
+Admin -> UI : Navigate to "System Management"
+UI -> RestRepo : findAll()
+RestRepo --> UI : List<Restaurant>
+UI --> Admin : Display all restaurants
+
+Admin -> UI : Select restaurant to manage
+UI -> LayoutSvc : getRestaurantLayout(restaurantId)
+LayoutSvc -> SectRepo : findByRestaurantId(restaurantId)
+loop For each section
+    LayoutSvc -> TableRepo : findBySectionId(sectionId)
+end
+LayoutSvc --> UI : RestaurantLayoutDTO
+UI --> Admin : Display full restaurant details
+
+== Create New Restaurant ==
+
+Admin -> UI : Click "Add Restaurant"
+Admin -> UI : Enter details (name, location, contact)
+UI -> RestSvc : createRestaurant(CreateRestaurantRequest)
+RestSvc -> RestSvc : validateRequest()
+RestSvc -> RestRepo : save(Restaurant)
+RestSvc --> UI : Restaurant
+UI --> Admin : Display new restaurant
+
+== Update Restaurant Settings ==
+
+Admin -> UI : Select restaurant settings
+Admin -> UI : Modify details
+UI -> RestSvc : updateRestaurant(restaurantId, UpdateRequest)
+RestSvc -> RestRepo : findById(restaurantId)
+RestSvc -> RestRepo : update(restaurant)
+RestSvc --> UI : Restaurant
+UI --> Admin : Display updated settings
+
+== Manage Users Across All Restaurants ==
+
+Admin -> UI : Navigate to "User Management"
+UI -> UserSvc : getAllUsers()
+UserSvc -> UserRepo : findAll()
+UserSvc --> UI : List<UserResponse>
+UI --> Admin : Display all users (all restaurants, all roles)
+
+Admin -> UI : Filter by restaurant or role
+alt Filter by restaurant
+    UI -> UserSvc : getUsersByRestaurant(restaurantId)
+    UserSvc -> UserRepo : findByRestaurantId(restaurantId)
+else Filter by role
+    UI -> UserSvc : getUsersByRole(role)
+    UserSvc -> UserRepo : findByRole(role)
+end
+UserSvc --> UI : List<UserResponse>
+UI --> Admin : Display filtered users
+
+== Create Any User Type (Including Admins) ==
+
+Admin -> UI : Click "Create User"
+Admin -> UI : Enter user details
+Admin -> UI : Select role (any role available)
+Admin -> UI : Assign to restaurant
+UI -> UserSvc : createUser(UserCreateRequest)
+
+UserSvc -> UserRepo : existsByUsername(username)
+UserSvc -> UserRepo : existsByEmail(email)
+
+alt Duplicate found
+    UserSvc --> UI : DuplicateUserException
+    UI --> Admin : Display error
+else Unique
+    UserSvc -> UserSvc : hashPassword()
+    UserSvc -> UserRepo : save(User)
+    UserSvc --> UI : User
+    UI --> Admin : Display new user
+end
+
+== Assign/Change User Roles ==
+
+Admin -> UI : Select user to modify
+Admin -> UI : Change role assignment
+UI -> UserSvc : updateUser(userId, UserUpdateRequest)
+UserSvc -> UserRepo : findById(userId)
+note right
+  Admin can assign ANY role:
+  - SYSTEM_ADMIN
+  - RESTAURANT_MANAGER
+  - FRONT_OF_HOUSE_STAFF
+  - CUSTOMER
+end note
+UserSvc -> UserRepo : update(user)
+UserSvc --> UI : User
+UI --> Admin : Display updated user
+
+== Transfer User to Different Restaurant ==
+
+Admin -> UI : Select user
+Admin -> UI : Change restaurant assignment
+UI -> UserSvc : updateUser(userId, {restaurantId: newId})
+UserSvc -> UserRepo : findById(userId)
+UserSvc -> RestRepo : findById(newRestaurantId)
+UserSvc -> UserRepo : update(user)
+UserSvc --> UI : User
+UI --> Admin : User transferred
+
+== Delete User Account (Permanent) ==
+
+Admin -> UI : Select user to delete
+UI -> UI : Confirm deletion (permanent)
+Admin -> UI : Confirm
+
+UI -> AuthSvc : logoutAllSessions(userId)
+AuthSvc -> SessionRepo : expireAllUserSessions(userId)
+SessionRepo --> AuthSvc : sessions terminated
+
+UI -> UserSvc : deleteUser(userId)
+UserSvc -> UserRepo : deleteById(userId)
+UserSvc --> UI : void
+UI --> Admin : User permanently removed
+
+== View and Manage All Sessions ==
+
+Admin -> UI : Navigate to "Active Sessions"
+UI -> SessionRepo : findAllActiveSessions()
+SessionRepo --> UI : List<UserSession>
+UI -> UserRepo : findById() [for each]
+UI --> Admin : Display all active sessions
+
+alt Terminate specific session
+    Admin -> UI : Select session
+    UI -> AuthSvc : logout(sessionToken)
+    AuthSvc -> SessionRepo : expireSession(token)
+    AuthSvc --> UI : void
+    UI --> Admin : Session terminated
+else Force logout all sessions for user
+    Admin -> UI : Select user, "Force Logout All"
+    UI -> AuthSvc : logoutAllSessions(userId)
+    AuthSvc -> SessionRepo : expireAllUserSessions(userId)
+    AuthSvc --> UI : count
+    UI --> Admin : N sessions terminated
+end
+
+== Cleanup Expired Sessions ==
+
+Admin -> UI : Click "Cleanup Expired Sessions"
+UI -> AuthSvc : cleanupExpiredSessions()
+AuthSvc -> SessionRepo : cleanupExpiredSessions()
+note right: DELETE WHERE expiresAt < NOW()
+SessionRepo --> AuthSvc : count cleaned
+AuthSvc --> UI : count
+UI --> Admin : Cleaned up N sessions
+
+== Force Password Reset ==
+
+Admin -> UI : Select user
+Admin -> UI : Click "Force Password Reset"
+Admin -> UI : Enter new password
+UI -> UserSvc : resetPassword(userId, newPassword)
+UserSvc -> UserSvc : validatePassword()
+
+alt Invalid
+    UserSvc --> UI : UserServiceException
+    UI --> Admin : Display requirements
+else Valid
+    UserSvc -> UserRepo : findById(userId)
+    UserSvc -> UserSvc : hashPassword()
+    UserSvc -> UserRepo : update(user)
+    UI -> AuthSvc : logoutAllSessions(userId)
+    UserSvc --> UI : void
+    UI --> Admin : Password reset, user must re-login
+end
+
+== View System-Wide Reservations ==
+
+Admin -> UI : Navigate to "All Reservations"
+
+alt View all restaurants
+    loop For each restaurant
+        UI -> ResSvc : getReservationsByRestaurant(id, date)
+        ResSvc -> ResRepo : findByDate()
+    end
+    ResSvc --> UI : Combined list
+else Filter by restaurant
+    Admin -> UI : Select restaurant
+    UI -> ResSvc : getReservationsByRestaurant(id, date)
+    ResSvc --> UI : List<ReservationResponse>
+end
+
+UI --> Admin : Display reservations with restaurant context
+
+== View System-Wide Customer Data ==
+
+Admin -> UI : Navigate to "All Customers"
+UI -> CustSvc : getAllCustomers()
+CustSvc -> CustRepo : findAll()
+CustSvc --> UI : List<CustomerResponse>
+UI --> Admin : Display all customers
+
+Admin -> UI : Filter by restaurant
+UI -> CustSvc : getCustomersByRestaurant(restaurantId)
+CustSvc -> CustRepo : findByRestaurantId()
+CustSvc --> UI : List<CustomerResponse>
+UI --> Admin : Display filtered customers
+
+== System Audit - View User Activity ==
+
+Admin -> UI : Select user to audit
+UI -> UserRepo : findById(userId)
+UserRepo --> UI : User (lastLogin, createdAt)
+UI -> SessionRepo : findByUserId(userId)
+SessionRepo --> UI : List<UserSession>
+UI --> Admin : Display user activity:\n- Creation date\n- Last login\n- Session history\n- IP addresses
+
+== Manage Restaurant Layout (Any Restaurant) ==
+
+Admin -> UI : Select any restaurant
+Admin -> UI : Modify layout
+note right
+  Admin can perform all Manager
+  actions on ANY restaurant
+end note
+
+alt Create section
+    UI -> LayoutSvc : createSection()
+    LayoutSvc -> SectRepo : save()
+    LayoutSvc --> UI : Section
+else Create table
+    UI -> LayoutSvc : createTable()
+    LayoutSvc -> TableRepo : save()
+    LayoutSvc --> UI : Table
+else Delete section (cascade)
+    UI -> LayoutSvc : deleteSection(id, cascade=true)
+    LayoutSvc -> TableRepo : deleteBySectionId()
+    LayoutSvc -> SectRepo : deleteById()
+    LayoutSvc --> UI : tables deleted
+end
+
+UI --> Admin : Layout updated
+
+== Delete Restaurant (Cascade) ==
+
+Admin -> UI : Select restaurant to delete
+UI -> UI : Confirm (PERMANENT)
+Admin -> UI : Type confirmation
+
+note right
+  Cascade delete order:
+  1. Sessions for restaurant users
+  2. Reservations
+  3. Tables
+  4. Sections
+  5. Customers
+  6. Users
+  7. Restaurant
+end note
+
+UI -> UserSvc : getUsersByRestaurant(restaurantId)
+loop For each user
+    UI -> AuthSvc : logoutAllSessions(userId)
+end
+
+UI -> ResRepo : deleteByRestaurantId()
+UI -> TableRepo : deleteByRestaurantId()
+UI -> SectRepo : deleteByRestaurantId()
+UI -> CustRepo : deleteByRestaurantId()
+UI -> UserRepo : deleteByRestaurantId()
+UI -> RestRepo : deleteById()
+
+UI --> Admin : Restaurant and all data deleted
+
+== System Health Check ==
+
+Admin -> UI : Navigate to "System Health"
+
+par Check repositories
+    UI -> RestRepo : count()
+and
+    UI -> UserRepo : count()
+and
+    UI -> SessionRepo : countActiveSessions()
+and
+    UI -> ResRepo : count()
+end
+
+UI --> Admin : Display health dashboard:\n- Total restaurants\n- Users by role\n- Active sessions\n- Total reservations\n- DB connectivity
+
+@enduml
+

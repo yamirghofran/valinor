@@ -1,0 +1,33 @@
+---
+config:
+  layout: dagre
+title: Customer User Flow
+---
+flowchart TB
+ subgraph Auth["Authentication"]
+        Login["Log In"]
+        NoAccount{"No Account?"}
+        SignUp["Sign Up"]
+  end
+ subgraph Reservations["Reservations"]
+        Browse["Browse Availability"]
+        MakeRes["Make Reservation"]
+        ViewRes["View My Reservations"]
+        ModifyRes["Modify Reservation"]
+        CancelRes["Cancel Reservation"]
+  end
+ subgraph Profile["Profile"]
+        UpdateProfile["Update My Profile"]
+  end
+ subgraph CustomerSystem["Customer Portal"]
+    direction TB
+        Auth
+        Reservations
+        Profile
+        Logout["Log Out"]
+  end
+    Login --- NoAccount
+    NoAccount -- Yes --> SignUp
+    Browse --> MakeRes
+    ViewRes --> ModifyRes & CancelRes
+    Customer(("Customer")) --> Login & Browse & ViewRes & UpdateProfile & Logout

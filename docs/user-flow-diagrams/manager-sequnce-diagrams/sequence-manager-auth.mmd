@@ -1,0 +1,38 @@
+sequenceDiagram
+    title Restaurant Manager - Authentication Flow
+
+    actor Manager as Restaurant Manager
+    participant UI as JavaFX UI
+    participant AuthSvc as AuthenticationService
+    participant UserRepo as UserRepository
+    participant SessionRepo as UserSessionRepository
+
+    %% ============================================
+    %% MANAGER LOGIN WITH FULL PERMISSIONS
+    %% ============================================
+    rect rgb(230, 245, 255)
+        Note over Manager,SessionRepo: Manager Authentication Flow
+        Manager->>UI: Enter credentials
+        UI->>AuthSvc: login(LoginRequest)
+        AuthSvc->>UserRepo: findByUsername(username)
+        UserRepo-->>AuthSvc: User (role=RESTAURANT_MANAGER)
+        AuthSvc->>AuthSvc: verifyPassword()
+        AuthSvc->>SessionRepo: save(UserSession)
+        AuthSvc-->>UI: LoginResponse(token, user, permissions)
+        Note right of UI: Manager Permissions:<br/>All Staff permissions PLUS:<br/>CREATE/UPDATE/DELETE_SECTION<br/>CREATE/UPDATE/DELETE_TABLE<br/>MANAGE_RESTAURANT_SETTINGS<br/>CREATE/UPDATE/DELETE_USER<br/>ASSIGN_ROLES<br/>VIEW_ALL_RESERVATIONS
+        UI-->>Manager: Dashboard with Manager menu options
+    end
+
+    %% ============================================
+    %% LOGOUT
+    %% ============================================
+    rect rgb(240, 240, 240)
+        Note over Manager,SessionRepo: Logout Flow
+        Manager->>UI: Click Logout
+        UI->>AuthSvc: logout(sessionToken)
+        AuthSvc->>SessionRepo: expireSession(token)
+        SessionRepo-->>AuthSvc: boolean
+        AuthSvc-->>UI: void
+        UI-->>Manager: Navigate to Login screen
+    end
+

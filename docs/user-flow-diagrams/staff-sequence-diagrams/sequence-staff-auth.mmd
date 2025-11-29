@@ -1,0 +1,38 @@
+sequenceDiagram
+    title Front-of-House Staff - Authentication Flow
+
+    actor Staff as Front-of-House Staff
+    participant UI as JavaFX UI
+    participant AuthSvc as AuthenticationService
+    participant UserRepo as UserRepository
+    participant SessionRepo as UserSessionRepository
+
+    %% ============================================
+    %% STAFF LOGIN WITH PERMISSIONS
+    %% ============================================
+    rect rgb(230, 245, 255)
+        Note over Staff,SessionRepo: Staff Authentication Flow
+        Staff->>UI: Enter credentials
+        UI->>AuthSvc: login(LoginRequest)
+        AuthSvc->>UserRepo: findByUsername(username)
+        UserRepo-->>AuthSvc: User (role=FRONT_OF_HOUSE_STAFF)
+        AuthSvc->>AuthSvc: verifyPassword()
+        AuthSvc->>SessionRepo: save(UserSession)
+        AuthSvc-->>UI: LoginResponse(token, user, permissions)
+        Note right of UI: Permissions include:<br/>VIEW_RESERVATIONS<br/>CREATE_RESERVATION<br/>UPDATE_RESERVATION<br/>CANCEL_RESERVATION<br/>VIEW_CUSTOMERS<br/>CREATE_CUSTOMER<br/>UPDATE_CUSTOMER<br/>VIEW_TABLES<br/>ASSIGN_TABLE
+        UI-->>Staff: Dashboard with Staff menu options
+    end
+
+    %% ============================================
+    %% LOGOUT
+    %% ============================================
+    rect rgb(240, 240, 240)
+        Note over Staff,SessionRepo: Logout Flow
+        Staff->>UI: Click Logout
+        UI->>AuthSvc: logout(sessionToken)
+        AuthSvc->>SessionRepo: expireSession(token)
+        SessionRepo-->>AuthSvc: boolean
+        AuthSvc-->>UI: void
+        UI-->>Staff: Navigate to Login screen
+    end
+

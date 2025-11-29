@@ -1,0 +1,38 @@
+sequenceDiagram
+    title System Admin - Authentication Flow
+
+    actor Admin as System Admin
+    participant UI as JavaFX UI
+    participant AuthSvc as AuthenticationService
+    participant UserRepo as UserRepository
+    participant SessionRepo as UserSessionRepository
+
+    %% ============================================
+    %% ADMIN LOGIN WITH FULL SYSTEM ACCESS
+    %% ============================================
+    rect rgb(230, 245, 255)
+        Note over Admin,SessionRepo: System Admin Authentication Flow
+        Admin->>UI: Enter credentials
+        UI->>AuthSvc: login(LoginRequest)
+        AuthSvc->>UserRepo: findByUsername(username)
+        UserRepo-->>AuthSvc: User (role=SYSTEM_ADMIN)
+        AuthSvc->>AuthSvc: verifyPassword()
+        AuthSvc->>SessionRepo: save(UserSession)
+        AuthSvc-->>UI: LoginResponse(token, user, permissions)
+        Note right of UI: SYSTEM_ADMIN has ALL permissions:<br/>EnumSet.allOf(Permission.class)<br/>Full access across ALL restaurants
+        UI-->>Admin: Dashboard with System Admin controls
+    end
+
+    %% ============================================
+    %% LOGOUT
+    %% ============================================
+    rect rgb(240, 240, 240)
+        Note over Admin,SessionRepo: Logout Flow
+        Admin->>UI: Click Logout
+        UI->>AuthSvc: logout(sessionToken)
+        AuthSvc->>SessionRepo: expireSession(token)
+        SessionRepo-->>AuthSvc: boolean
+        AuthSvc-->>UI: void
+        UI-->>Admin: Navigate to Login screen
+    end
+
