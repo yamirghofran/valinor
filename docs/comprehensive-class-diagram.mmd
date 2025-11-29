@@ -1,0 +1,968 @@
+classDiagram
+    %% ============================================================================
+    %% DOMAIN MODEL - Core Business Entities
+    %% ============================================================================
+    
+    class Customer {
+        -Long customerId
+        -String firstName
+        -String lastName
+        -String email
+        -String phone
+        -String allergies
+        -String notes
+        -Long restaurantId
+        +getFullName() String
+        +equals(Object) boolean
+        +hashCode() int
+    }
+    
+    class Reservation {
+        -Long reservationId
+        -Long customerId
+        -Long restaurantId
+        -Long tableId
+        -Integer partySize
+        -LocalDateTime reservationDatetime
+        -ReservationStatus status
+        -String specialRequests
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +markAsUpdated() void
+        +isActive() boolean
+    }
+    
+    class Restaurant {
+        -Long restaurantId
+        -String name
+        -String location
+        -String contactEmail
+        -String contactPhone
+    }
+    
+    class Section {
+        -Long sectionId
+        -Long restaurantId
+        -String name
+        -Integer numTables
+        -String notes
+    }
+    
+    class Table {
+        -Long tableId
+        -Long sectionId
+        -String tableNumber
+        -Integer capacity
+        -Boolean isActive
+        +isActive() boolean
+    }
+    
+    class User {
+        -Long userId
+        -String username
+        -String passwordHash
+        -String email
+        -String firstName
+        -String lastName
+        -String phone
+        -UserRole role
+        -Long restaurantId
+        -Boolean isActive
+        -LocalDateTime createdAt
+        -LocalDateTime lastLogin
+        +getFullName() String
+        +getPermissions() Set~Permission~
+        +hasPermission(Permission) boolean
+        +isUsable() boolean
+        +toSafeString() String
+    }
+    
+    class UserSession {
+        -Long sessionId
+        -Long userId
+        -String sessionToken
+        -LocalDateTime createdAt
+        -LocalDateTime expiresAt
+        -String ipAddress
+        -Boolean isActive
+        +isExpired() boolean
+        +isValid() boolean
+        +expire() void
+        +getSecondsUntilExpiration() long
+    }
+    
+    %% ============================================================================
+    %% ENUMERATIONS
+    %% ============================================================================
+    
+    class ReservationStatus {
+        <<enumeration>>
+        CONFIRMED
+        COMPLETED
+        NO_SHOW
+        CANCELLED
+        +getValue() String
+        +fromValue(String) ReservationStatus
+    }
+    
+    class UserRole {
+        <<enumeration>>
+        SYSTEM_ADMIN
+        RESTAURANT_MANAGER
+        FRONT_OF_HOUSE_STAFF
+        CUSTOMER
+        -String displayName
+        -String description
+        -Set~Permission~ defaultPermissions
+        +getDisplayName() String
+        +getDescription() String
+        +getDefaultPermissions() Set~Permission~
+        +hasPermission(Permission) boolean
+        +hasAnyPermission(Permission...) boolean
+        +hasAllPermissions(Permission...) boolean
+    }
+    
+    class Permission {
+        <<enumeration>>
+        MANAGE_RESTAURANT_SETTINGS
+        VIEW_RESTAURANT_SETTINGS
+        CREATE_SECTION
+        UPDATE_SECTION
+        DELETE_SECTION
+        VIEW_SECTIONS
+        CREATE_TABLE
+        UPDATE_TABLE
+        DELETE_TABLE
+        VIEW_TABLES
+        CREATE_RESERVATION
+        UPDATE_RESERVATION
+        CANCEL_RESERVATION
+        VIEW_RESERVATIONS
+        VIEW_ALL_RESERVATIONS
+        ASSIGN_TABLE
+        UPDATE_RESERVATION_STATUS
+        CREATE_CUSTOMER
+        UPDATE_CUSTOMER
+        DELETE_CUSTOMER
+        VIEW_CUSTOMERS
+        VIEW_CUSTOMER_HISTORY
+        CREATE_USER
+        UPDATE_USER
+        DELETE_USER
+        VIEW_USERS
+        ASSIGN_ROLES
+        -String displayName
+        -String description
+        +getDisplayName() String
+        +getDescription() String
+    }
+    
+    %% ============================================================================
+    %% REPOSITORY LAYER - Data Access
+    %% ============================================================================
+    
+    class Repository~T, ID~ {
+        <<interface>>
+        +save(T) T
+        +findById(ID) Optional~T~
+        +findAll() List~T~
+        +update(T) T
+        +deleteById(ID) boolean
+        +existsById(ID) boolean
+        +count() long
+    }
+    
+    class CsvRepository~T, ID~ {
+        <<interface>>
+        +findByField(String, Object) List~T~
+        +findByFields(Map) List~T~
+        +findOneByField(String, Object) Optional~T~
+        +findWhere(Predicate) List~T~
+        +saveAll(List) List~T~
+        +deleteAllById(List) int
+        +deleteByFields(Map) int
+        +getFilePath() String
+        +reload() void
+    }
+    
+    class AbstractCsvRepository~T, ID~ {
+        <<abstract>>
+        #CsvFileManager fileManager
+        #CsvParser csvParser
+        #EntityMapper~T~ entityMapper
+        #Map~ID, T~ entityCache
+        #AtomicLong idGenerator
+        #String[] columnNames
+        -boolean cacheDirty
+        -Object cacheLock
+        -initializeFile() void
+        -loadCache() void
+        -persistCacheToFile() void
+        -ensureCacheLoaded() void
+        -generateNextId() ID
+        #fieldValueMatches(T, String, Object) boolean*
+    }
+    
+    class CustomerRepository {
+        +findByEmail(String) Optional~Customer~
+        +findByLastName(String) List~Customer~
+        +searchByName(String) List~Customer~
+        +existsByEmail(String) boolean
+        +findCustomersWithAllergies() List~Customer~
+        +findByRestaurantId(Long) List~Customer~
+    }
+    
+    class ReservationRepository {
+        +findByCustomerId(Long) List~Reservation~
+        +findByRestaurantId(Long) List~Reservation~
+        +findByTableId(Long) List~Reservation~
+        +findByDate(Long, LocalDate) List~Reservation~
+        +findByStatus(ReservationStatus) List~Reservation~
+        +findActiveReservations(Long, LocalDateTime) List~Reservation~
+        +hasConflictingReservation(Long, LocalDateTime, int) boolean
+        +hasConflictingReservation(Long, LocalDateTime, int, Long) boolean
+    }
+    
+    class RestaurantRepository {
+        +findByName(String) Optional~Restaurant~
+        +existsByName(String) boolean
+    }
+    
+    class SectionRepository {
+        +findByRestaurantId(Long) List~Section~
+        +findByName(String) List~Section~
+    }
+    
+    class TableRepository {
+        +findBySectionId(Long) List~Table~
+        +findByTableNumber(String) List~Table~
+        +findActiveTablesBySectionId(Long) List~Table~
+        +deleteBySectionId(Long) int
+        +activateTable(Long) Table
+        +deactivateTable(Long) Table
+    }
+    
+    class UserRepository {
+        +findByUsername(String) Optional~User~
+        +findByEmail(String) Optional~User~
+        +findByRole(UserRole) List~User~
+        +findByRestaurantId(Long) List~User~
+        +findActiveUsers() List~User~
+        +existsByUsername(String) boolean
+        +existsByEmail(String) boolean
+    }
+    
+    class UserSessionRepository {
+        +findBySessionToken(String) Optional~UserSession~
+        +findByUserId(Long) List~UserSession~
+        +findActiveSessionsByUserId(Long) List~UserSession~
+        +expireSession(String) boolean
+        +expireAllUserSessions(Long) int
+        +cleanupExpiredSessions() int
+    }
+    
+    %% ============================================================================
+    %% REPOSITORY MAPPERS
+    %% ============================================================================
+    
+    class EntityMapper~T~ {
+        <<interface>>
+        +fromCsvRecord(Map) T
+        +toCsvRecord(T) Map
+        +getColumnNames() List~String~
+        +getPrimaryKey(T) Object
+        +setPrimaryKey(T, Object) void
+        +validateEntity(T) void
+    }
+    
+    class CustomerEntityMapper {
+        +fromCsvRecord(Map) Customer
+        +toCsvRecord(Customer) Map
+        +getColumnNames() List~String~
+        +getPrimaryKey(Customer) Long
+        +setPrimaryKey(Customer, Object) void
+        +validateEntity(Customer) void
+    }
+    
+    class ReservationEntityMapper {
+        +fromCsvRecord(Map) Reservation
+        +toCsvRecord(Reservation) Map
+    }
+    
+    class RestaurantEntityMapper {
+        +fromCsvRecord(Map) Restaurant
+        +toCsvRecord(Restaurant) Map
+    }
+    
+    class SectionEntityMapper {
+        +fromCsvRecord(Map) Section
+        +toCsvRecord(Section) Map
+    }
+    
+    class TableEntityMapper {
+        +fromCsvRecord(Map) Table
+        +toCsvRecord(Table) Map
+    }
+    
+    class UserEntityMapper {
+        +fromCsvRecord(Map) User
+        +toCsvRecord(User) Map
+    }
+    
+    class UserSessionEntityMapper {
+        +fromCsvRecord(Map) UserSession
+        +toCsvRecord(UserSession) Map
+    }
+    
+    %% ============================================================================
+    %% SERVICE LAYER - Business Logic
+    %% ============================================================================
+    
+    class CustomerService {
+        -CustomerRepository customerRepository
+        -Pattern EMAIL_PATTERN
+        +createCustomer(CreateCustomerRequest) Customer
+        +updateCustomer(Long, UpdateCustomerRequest) Customer
+        +deleteCustomer(Long) void
+        +getCustomerById(Long) Optional~Customer~
+        +getCustomerByEmail(String) Optional~Customer~
+        +searchCustomers(String) List~Customer~
+        +getAllCustomers() List~Customer~
+        +getCustomersWithAllergies() List~Customer~
+        +getCustomersByLastName(String) List~Customer~
+        +getCustomersByRestaurant(Long) List~Customer~
+        +toResponse(Customer) CustomerResponse
+        -validateCreateRequest(CreateCustomerRequest) void
+        -validateEmail(String) void
+        -validateNotEmpty(String, String) void
+    }
+    
+    class ReservationService {
+        -ReservationRepository reservationRepository
+        -CustomerRepository customerRepository
+        -RestaurantRepository restaurantRepository
+        -TableRepository tableRepository
+        -TableAvailabilityService tableAvailabilityService
+        -int DEFAULT_DURATION_MINUTES
+        +createReservation(CreateReservationRequest) Reservation
+        +createReservationWithAutoAssignment(CreateReservationRequest) Reservation
+        +updateReservation(Long, UpdateReservationRequest) Reservation
+        +cancelReservation(Long) Reservation
+        +markAsCompleted(Long) Reservation
+        +markAsNoShow(Long) Reservation
+        +getReservationById(Long) Optional~Reservation~
+        +getReservationsByCustomer(Long) List~Reservation~
+        +getReservationsByRestaurant(Long, LocalDate) List~Reservation~
+        +getActiveReservations(Long) List~Reservation~
+        +toResponse(Reservation) ReservationResponse
+        -validateCreateRequest(CreateReservationRequest) void
+        -updateReservationStatus(Long, ReservationStatus) Reservation
+    }
+    
+    class RestaurantLayoutService {
+        -RestaurantRepository restaurantRepository
+        -SectionRepository sectionRepository
+        -TableRepository tableRepository
+        -LayoutValidationService validationService
+        +createSection(CreateSectionRequest) Section
+        +updateSection(Long, UpdateSectionRequest) Section
+        +deleteSection(Long, boolean) int
+        +createTable(CreateTableRequest) Table
+        +updateTable(Long, UpdateTableRequest) Table
+        +deleteTable(Long) boolean
+        +activateTable(Long) Table
+        +deactivateTable(Long) Table
+        +getRestaurantLayout(Long) RestaurantLayoutDTO
+        +getSectionWithTables(Long) SectionWithTablesDTO
+        +validateLayout(Long) List~String~
+        +getSections(Long) List~Section~
+        +getTables(Long) List~Table~
+        +getActiveTables(Long) List~Table~
+    }
+    
+    class TableAvailabilityService {
+        -TableRepository tableRepository
+        -SectionRepository sectionRepository
+        -ReservationRepository reservationRepository
+        -int DEFAULT_DURATION_MINUTES
+        +isTableAvailable(Long, LocalDateTime) boolean
+        +getAvailableTables(Long, LocalDateTime, Integer) List~Table~
+        +getAvailableTablesInSection(Long, LocalDateTime, Integer) List~Table~
+        +validateTableAssignment(Long, LocalDateTime, Integer) boolean
+        +getOptimalTable(Long, LocalDateTime, Integer) Optional~Table~
+        +getAvailableCapacity(Long, LocalDateTime) int
+        +suggestAlternativeTables(Long, LocalDateTime, Integer) List~Table~
+    }
+    
+    class LayoutValidationService {
+        -RestaurantRepository restaurantRepository
+        -SectionRepository sectionRepository
+        -TableRepository tableRepository
+        +validateRestaurantExists(Long) void
+        +validateSectionExists(Long) void
+        +validateTableExists(Long) void
+        +validateTableCapacity(Integer) void
+        +validateTableNumberUnique(Long, String, Long) void
+        +canDeleteSection(Long) boolean
+        +getTableCountForSection(Long) int
+        +validateCompleteLayout(Long) List~String~
+    }
+    
+    class UserService {
+        -UserRepository userRepository
+        -Pattern usernamePattern
+        -Pattern emailPattern
+        +createUser(UserCreateRequest) User
+        +updateUser(Long, UserUpdateRequest) User
+        +deleteUser(Long) void
+        +getUserById(Long) Optional~User~
+        +getUserByUsername(String) Optional~User~
+        +getUsersByRestaurant(Long) List~User~
+        +getUsersByRole(UserRole) List~User~
+        +getAllUsers() List~User~
+        +activateUser(Long) void
+        +deactivateUser(Long) void
+        +changePassword(Long, String, String) void
+        +resetPassword(Long, String) void
+        -validateCreateRequest(UserCreateRequest) void
+        -validateUsername(String) void
+        -validateEmail(String) void
+    }
+    
+    class AuthenticationService {
+        -UserRepository userRepository
+        -UserSessionRepository sessionRepository
+        +login(LoginRequest) LoginResponse
+        +logout(String) void
+        +validateSession(String) Optional~User~
+        +refreshSession(String) UserSession
+        +logoutAllSessions(Long) int
+        +verifyPassword(String, String) boolean
+        +hashPassword(String) String
+        +cleanupExpiredSessions() int
+    }
+    
+    class AuthorizationService {
+        +hasPermission(User, Permission) boolean
+        +hasAnyPermission(User, Permission...) boolean
+        +hasAllPermissions(User, Permission...) boolean
+        +getUserPermissions(User) Set~Permission~
+        +checkPermission(User, Permission) void
+        +canAccessRestaurant(User, Long) boolean
+        +canManageUser(User, User) boolean
+        +checkRestaurantAccess(User, Long) void
+    }
+    
+    class RestaurantService {
+        -RestaurantRepository restaurantRepository
+        +createRestaurant(CreateRestaurantRequest) Restaurant
+        +updateRestaurant(Long, RestaurantResponse) Restaurant
+        +getRestaurantById(Long) Optional~Restaurant~
+        +getAllRestaurants() List~Restaurant~
+    }
+    
+    %% ============================================================================
+    %% INFRASTRUCTURE LAYER
+    %% ============================================================================
+    
+    class CsvFileManager {
+        -Path filePath
+        +createIfNotExists(String) void
+        +readAllLines() List~String~
+        +writeAllLines(List) void
+        +appendLine(String) void
+        +fileExists() boolean
+        +deleteFile() boolean
+        +getFilePath() Path
+    }
+    
+    class CsvParser {
+        +parseLines(List) List~Map~
+        +parseLine(String) Map~String, String~
+        +formatRecords(List, String[]) List~String~
+        +formatRecord(Map, String[]) String
+        +escapeValue(String) String
+        +unescapeValue(String) String
+    }
+    
+    class PasswordHasher {
+        <<utility>>
+        +hash(String)$ String
+        +verify(String, String)$ boolean
+        +isValidPassword(String)$ boolean
+        +getPasswordRequirements()$ String
+    }
+    
+    class SessionTokenGenerator {
+        <<utility>>
+        +generateToken()$ String
+        +generateSecureRandomString(int)$ String
+    }
+    
+    class PermissionMapper {
+        <<utility>>
+        +mapRoleToPermissions(UserRole)$ Set~Permission~
+        +hasPermission(UserRole, Permission)$ boolean
+    }
+    
+    class UserConfig {
+        <<configuration>>
+        +USERNAME_MIN_LENGTH$ int
+        +USERNAME_MAX_LENGTH$ int
+        +USERNAME_PATTERN$ String
+        +EMAIL_PATTERN$ String
+        +PASSWORD_MIN_LENGTH$ int
+        +PASSWORD_MAX_LENGTH$ int
+        +PASSWORD_REQUIRE_UPPERCASE$ boolean
+        +PASSWORD_REQUIRE_LOWERCASE$ boolean
+        +PASSWORD_REQUIRE_DIGIT$ boolean
+        +PASSWORD_REQUIRE_SPECIAL$ boolean
+        +BCRYPT_WORK_FACTOR$ int
+        +SESSION_EXPIRY_HOURS$ int
+    }
+    
+    %% ============================================================================
+    %% DATA TRANSFER OBJECTS (DTOs)
+    %% ============================================================================
+    
+    class CreateCustomerRequest {
+        -String firstName
+        -String lastName
+        -String email
+        -String phone
+        -String allergies
+        -String notes
+        -Long restaurantId
+    }
+    
+    class UpdateCustomerRequest {
+        -String firstName
+        -String lastName
+        -String email
+        -String phone
+        -String allergies
+        -String notes
+        -Long restaurantId
+        +hasUpdates() boolean
+    }
+    
+    class CustomerResponse {
+        -Long customerId
+        -String firstName
+        -String lastName
+        -String email
+        -String phone
+        -String allergies
+        -String notes
+        -Long restaurantId
+        +fromCustomer(Customer)$ CustomerResponse
+    }
+    
+    class CreateReservationRequest {
+        -Long customerId
+        -Long restaurantId
+        -Long tableId
+        -Integer partySize
+        -LocalDateTime reservationDatetime
+        -String specialRequests
+    }
+    
+    class UpdateReservationRequest {
+        -Long tableId
+        -Integer partySize
+        -LocalDateTime reservationDatetime
+        -String specialRequests
+        +hasUpdates() boolean
+    }
+    
+    class ReservationResponse {
+        -Long reservationId
+        -Long customerId
+        -String customerName
+        -Long restaurantId
+        -String restaurantName
+        -Long tableId
+        -String tableNumber
+        -Integer partySize
+        -LocalDateTime reservationDatetime
+        -ReservationStatus status
+        -String specialRequests
+        +fromReservation(Reservation)$ ReservationResponse
+    }
+    
+    class CreateRestaurantRequest {
+        -String name
+        -String location
+        -String contactEmail
+        -String contactPhone
+    }
+    
+    class RestaurantResponse {
+        -Long restaurantId
+        -String name
+        -String location
+        -String contactEmail
+        -String contactPhone
+    }
+    
+    class CreateSectionRequest {
+        -Long restaurantId
+        -String name
+        -Integer numTables
+        -String notes
+    }
+    
+    class UpdateSectionRequest {
+        -String name
+        -Integer numTables
+        -String notes
+    }
+    
+    class CreateTableRequest {
+        -Long sectionId
+        -String tableNumber
+        -Integer capacity
+        -Boolean isActive
+    }
+    
+    class UpdateTableRequest {
+        -String tableNumber
+        -Integer capacity
+        -Boolean isActive
+    }
+    
+    class RestaurantLayoutDTO {
+        -Restaurant restaurant
+        -List~SectionWithTablesDTO~ sections
+        +getSectionCount() int
+        +getTotalTableCount() int
+    }
+    
+    class SectionWithTablesDTO {
+        -Section section
+        -List~Table~ tables
+        +getTableCount() int
+    }
+    
+    class UserCreateRequest {
+        -String username
+        -String password
+        -String email
+        -String firstName
+        -String lastName
+        -String phone
+        -UserRole role
+        -Long restaurantId
+    }
+    
+    class UserUpdateRequest {
+        -String email
+        -String firstName
+        -String lastName
+        -String phone
+        -UserRole role
+        -Long restaurantId
+        -Boolean isActive
+        +hasUpdates() boolean
+    }
+    
+    class UserResponse {
+        -Long userId
+        -String username
+        -String email
+        -String firstName
+        -String lastName
+        -String fullName
+        -UserRole role
+        -Long restaurantId
+        -Boolean isActive
+        -LocalDateTime createdAt
+        -LocalDateTime lastLogin
+        +fromUser(User)$ UserResponse
+    }
+    
+    class LoginRequest {
+        -String username
+        -String password
+        -String ipAddress
+    }
+    
+    class LoginResponse {
+        -String sessionToken
+        -UserResponse user
+        -LocalDateTime expiresAt
+        -Set~Permission~ permissions
+    }
+    
+    %% ============================================================================
+    %% EXCEPTIONS
+    %% ============================================================================
+    
+    class RepositoryException {
+        <<exception>>
+    }
+    
+    class CustomerException {
+        <<exception>>
+    }
+    
+    class ReservationException {
+        <<exception>>
+    }
+    
+    class ReservationConflictException {
+        <<exception>>
+        -Long tableId
+        -LocalDateTime requestedTime
+    }
+    
+    class InsufficientCapacityException {
+        <<exception>>
+        -Integer requiredCapacity
+        -Integer availableCapacity
+    }
+    
+    class LayoutValidationException {
+        <<exception>>
+    }
+    
+    class UserServiceException {
+        <<exception>>
+    }
+    
+    class DuplicateUserException {
+        <<exception>>
+    }
+    
+    class AuthenticationException {
+        <<exception>>
+    }
+    
+    class AuthorizationException {
+        <<exception>>
+    }
+    
+    class CsvException {
+        <<exception>>
+    }
+    
+    class EntityValidationException {
+        <<exception>>
+    }
+    
+    %% ============================================================================
+    %% UI LAYER (Controllers)
+    %% ============================================================================
+    
+    class LoginController {
+        -AuthenticationService authenticationService
+        -SessionManager sessionManager
+        +handleLogin() void
+        +navigateToDashboard() void
+    }
+    
+    class DashboardController {
+        -SessionManager sessionManager
+        +initialize() void
+        +loadUserInfo() void
+    }
+    
+    class CustomersController {
+        -CustomerService customerService
+        -SessionManager sessionManager
+        +loadCustomers() void
+        +handleCreateCustomer() void
+        +handleUpdateCustomer() void
+        +handleDeleteCustomer() void
+    }
+    
+    class ReservationsController {
+        -ReservationService reservationService
+        -CustomerService customerService
+        -SessionManager sessionManager
+        +loadReservations() void
+        +handleCreateReservation() void
+        +handleUpdateReservation() void
+        +handleCancelReservation() void
+    }
+    
+    class RestaurantLayoutController {
+        -RestaurantLayoutService layoutService
+        -SessionManager sessionManager
+        +loadLayout() void
+        +handleCreateSection() void
+        +handleCreateTable() void
+        +handleUpdateTable() void
+    }
+    
+    class UsersController {
+        -UserService userService
+        -SessionManager sessionManager
+        +loadUsers() void
+        +handleCreateUser() void
+        +handleUpdateUser() void
+        +handleDeactivateUser() void
+    }
+    
+    class SessionManager {
+        -User currentUser
+        -String sessionToken
+        +setCurrentUser(User) void
+        +getCurrentUser() User
+        +setSessionToken(String) void
+        +getSessionToken() String
+        +clearSession() void
+        +isLoggedIn() boolean
+    }
+    
+    class RestaurantApp {
+        <<main>>
+        +start(Stage) void
+        +main(String[])$ void
+    }
+    
+    %% ============================================================================
+    %% DOMAIN MODEL RELATIONSHIPS
+    %% ============================================================================
+    
+    Customer "1" --> "*" Reservation : books
+    Reservation "*" --> "1" Table : assigned to
+    Reservation "*" --> "1" Restaurant : context
+    Table "*" --> "1" Section : belongs to
+    Section "*" --> "1" Restaurant : part of
+    User "1" --> "*" UserSession : maintains
+    User "*" --> "1" Restaurant : works at
+    User --> UserRole : has
+    UserRole --> Permission : grants
+    Reservation --> ReservationStatus : has
+    
+    %% ============================================================================
+    %% REPOSITORY RELATIONSHIPS
+    %% ============================================================================
+    
+    Repository~T, ID~ <|.. CsvRepository~T, ID~
+    CsvRepository~T, ID~ <|.. AbstractCsvRepository~T, ID~
+    AbstractCsvRepository~T, ID~ <|-- CustomerRepository
+    AbstractCsvRepository~T, ID~ <|-- ReservationRepository
+    AbstractCsvRepository~T, ID~ <|-- RestaurantRepository
+    AbstractCsvRepository~T, ID~ <|-- SectionRepository
+    AbstractCsvRepository~T, ID~ <|-- TableRepository
+    AbstractCsvRepository~T, ID~ <|-- UserRepository
+    AbstractCsvRepository~T, ID~ <|-- UserSessionRepository
+    
+    AbstractCsvRepository~T, ID~ --> CsvFileManager : uses
+    AbstractCsvRepository~T, ID~ --> CsvParser : uses
+    AbstractCsvRepository~T, ID~ --> EntityMapper~T~ : uses
+    
+    EntityMapper~T~ <|.. CustomerEntityMapper
+    EntityMapper~T~ <|.. ReservationEntityMapper
+    EntityMapper~T~ <|.. RestaurantEntityMapper
+    EntityMapper~T~ <|.. SectionEntityMapper
+    EntityMapper~T~ <|.. TableEntityMapper
+    EntityMapper~T~ <|.. UserEntityMapper
+    EntityMapper~T~ <|.. UserSessionEntityMapper
+    
+    %% ============================================================================
+    %% SERVICE LAYER RELATIONSHIPS
+    %% ============================================================================
+    
+    CustomerService --> CustomerRepository : uses
+    
+    ReservationService --> ReservationRepository : uses
+    ReservationService --> CustomerRepository : uses
+    ReservationService --> RestaurantRepository : uses
+    ReservationService --> TableRepository : uses
+    ReservationService --> TableAvailabilityService : uses
+    
+    RestaurantLayoutService --> RestaurantRepository : uses
+    RestaurantLayoutService --> SectionRepository : uses
+    RestaurantLayoutService --> TableRepository : uses
+    RestaurantLayoutService --> LayoutValidationService : uses
+    
+    LayoutValidationService --> RestaurantRepository : uses
+    LayoutValidationService --> SectionRepository : uses
+    LayoutValidationService --> TableRepository : uses
+    
+    TableAvailabilityService --> TableRepository : uses
+    TableAvailabilityService --> SectionRepository : uses
+    TableAvailabilityService --> ReservationRepository : uses
+    
+    UserService --> UserRepository : uses
+    UserService --> PasswordHasher : uses
+    
+    AuthenticationService --> UserRepository : uses
+    AuthenticationService --> UserSessionRepository : uses
+    AuthenticationService --> PasswordHasher : uses
+    AuthenticationService --> SessionTokenGenerator : uses
+    
+    RestaurantService --> RestaurantRepository : uses
+    
+    %% ============================================================================
+    %% UI LAYER RELATIONSHIPS
+    %% ============================================================================
+    
+    LoginController --> AuthenticationService : uses
+    LoginController --> SessionManager : uses
+    
+    DashboardController --> SessionManager : uses
+    
+    CustomersController --> CustomerService : uses
+    CustomersController --> SessionManager : uses
+    
+    ReservationsController --> ReservationService : uses
+    ReservationsController --> CustomerService : uses
+    ReservationsController --> SessionManager : uses
+    
+    RestaurantLayoutController --> RestaurantLayoutService : uses
+    RestaurantLayoutController --> SessionManager : uses
+    
+    UsersController --> UserService : uses
+    UsersController --> SessionManager : uses
+    
+    RestaurantApp --> LoginController : creates
+    
+    %% ============================================================================
+    %% EXCEPTION RELATIONSHIPS
+    %% ============================================================================
+    
+    RepositoryException <|-- CsvException
+    RepositoryException <|-- EntityValidationException
+    
+    CustomerException --|> Exception
+    ReservationException --|> Exception
+    ReservationException <|-- ReservationConflictException
+    ReservationException <|-- InsufficientCapacityException
+    LayoutValidationException --|> Exception
+    UserServiceException --|> Exception
+    UserServiceException <|-- DuplicateUserException
+    AuthenticationException --|> Exception
+    AuthorizationException --|> Exception
+    
+    %% ============================================================================
+    %% DTO RELATIONSHIPS
+    %% ============================================================================
+    
+    CustomerService ..> CreateCustomerRequest : uses
+    CustomerService ..> UpdateCustomerRequest : uses
+    CustomerService ..> CustomerResponse : produces
+    
+    ReservationService ..> CreateReservationRequest : uses
+    ReservationService ..> UpdateReservationRequest : uses
+    ReservationService ..> ReservationResponse : produces
+    
+    RestaurantLayoutService ..> CreateSectionRequest : uses
+    RestaurantLayoutService ..> UpdateSectionRequest : uses
+    RestaurantLayoutService ..> CreateTableRequest : uses
+    RestaurantLayoutService ..> UpdateTableRequest : uses
+    RestaurantLayoutService ..> RestaurantLayoutDTO : produces
+    RestaurantLayoutService ..> SectionWithTablesDTO : produces
+    
+    UserService ..> UserCreateRequest : uses
+    UserService ..> UserUpdateRequest : uses
+    UserService ..> UserResponse : produces
+    
+    AuthenticationService ..> LoginRequest : uses
+    AuthenticationService ..> LoginResponse : produces
+    
+    RestaurantService ..> CreateRestaurantRequest : uses
+    RestaurantService ..> RestaurantResponse : produces
